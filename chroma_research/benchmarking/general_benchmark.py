@@ -85,10 +85,10 @@ def find_target_in_document(document, target):
 
 class GeneralBenchmark:
     # def __init__(self, name: str, description: str, benchmark: Callable):
-    def __init__(self, chunking_method, corpus_list=None):
+    def __init__(self, chunking_method, chroma_db_path=None, corpus_list=None):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         questions_df_path = csv_file_path = os.path.join(script_dir, 'general_benchmark_data', 'questions_df.csv')
-        self.questions_df = pd.read_csv('b/questions_df.csv')
+        self.questions_df = pd.read_csv(questions_df_path)
         self.questions_df['references'] = self.questions_df['references'].apply(json.loads)
         
         if corpus_list is None:
@@ -97,7 +97,10 @@ class GeneralBenchmark:
             self.corpus_list = corpus_list
             self.questions_df = self.questions_df[self.questions_df['corpus_id'].isin(corpus_list)]
 
-        # self.chroma_client = chromadb.PersistentClient(path="../data/chroma_db")
+        if chroma_db_path is not None:
+            self.chroma_client = chromadb.PersistentClient(path=chroma_db_path)
+        else:
+            self.chroma_client = chromadb.Client()
     
         # self.name = name
         # self.description = description
