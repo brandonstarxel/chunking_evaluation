@@ -7,6 +7,7 @@ setup(
     install_requires=[
         "tiktoken",
         "fuzzywuzzy"
+        "pandas",
     ],
     author="Brandon A. Smith",
     author_email="brandonsmithpmpuk@gmail.com",

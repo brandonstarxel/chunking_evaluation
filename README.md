@@ -38,3 +38,4 @@ Requirements:
 - tiktoken
 - fuzzywuzzy
 - chroma
+- pandas
