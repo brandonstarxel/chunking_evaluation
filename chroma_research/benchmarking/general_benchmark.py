@@ -88,8 +88,8 @@ def find_target_in_document(document, target):
 class GeneralBenchmark:
     # def __init__(self, name: str, description: str, benchmark: Callable):
     def __init__(self, chroma_db_path=None, corpus_list=None):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        questions_df_path = csv_file_path = os.path.join(script_dir, 'general_benchmark_data', 'questions_df.csv')
+        self.general_benchmark_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'general_benchmark_data')
+        questions_df_path = os.path.join(self.general_benchmark_path, 'questions_df.csv')
         self.questions_df = pd.read_csv(questions_df_path)
         self.questions_df['references'] = self.questions_df['references'].apply(json.loads)
         
@@ -110,7 +110,7 @@ class GeneralBenchmark:
         documents = []
         metadatas = []
         for corpus_id in self.corpus_list:
-            with open(f'data/{corpus_id}.md', 'r') as file:
+            with open(os.path.join(self.general_benchmark_path, 'corpora', f'{corpus_id}.md'), 'r') as file:
                 corpus = file.read()
 
             current_documents = splitter.split_text(corpus)
@@ -233,8 +233,8 @@ class GeneralBenchmark:
 
         return ioc_scores, recall_scores
 
-    def _chunker_to_collection(self, chunker, BERT=False):
-        OPENAI_API_KEY = os.getenv('OPENAI_CHROMA_API_KEY')
+    def _chunker_to_collection(self, chunker, BERT=False, OPENAI_API_KEY=None):
+        # OPENAI_API_KEY = os.getenv('OPENAI_CHROMA_API_KEY')
         openai_ef = embedding_functions.OpenAIEmbeddingFunction(
                         api_key=OPENAI_API_KEY,
                         model_name="text-embedding-3-large"
@@ -269,23 +269,41 @@ class GeneralBenchmark:
 
         return collection
 
-    def run(self, chunker, BERT=False):
+    def run(self, chunker, OPENAI_API_KEY, BERT=False):
         # print("Starting Chunking")
-        collection = self._chunker_to_collection(chunker, BERT)
+        collection = self._chunker_to_collection(chunker, BERT, OPENAI_API_KEY)
         # print("Chunking Complete")
 
         # questions = self.questions_df['question'].tolist()
 
-        question_collection = None
-        if not BERT:
-            OPENAI_API_KEY = os.getenv('OPENAI_CHROMA_API_KEY')
-            openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-                            api_key=OPENAI_API_KEY,
-                            model_name="text-embedding-3-large"
-                        )
-            question_collection = self.chroma_client.get_collection("questions_openai_large", embedding_function=openai_ef)
-        else:
-            question_collection = self.chroma_client.get_collection("questions_BERT")    
+        # question_collection = None
+        # if not BERT:
+        #     OPENAI_API_KEY = os.getenv('OPENAI_CHROMA_API_KEY')
+        #     openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+        #                     api_key=OPENAI_API_KEY,
+        #                     model_name="text-embedding-3-large"
+        #                 )
+        #     question_collection = self.chroma_client.get_collection("questions_openai_large", embedding_function=openai_ef)
+        # else:
+        #     question_collection = self.chroma_client.get_collection("questions_BERT") 
+        
+        try:
+            self.chroma_client.delete_collection("questions_BERT")
+        except ValueError as e:
+            pass
+
+        # OPENAI_API_KEY = os.getenv('OPENAI_CHROMA_API_KEY')
+        openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+                        api_key=OPENAI_API_KEY,
+                        model_name="text-embedding-3-large"
+                    )
+        question_collection = self.chroma_client.create_collection("auto_questions", embedding_function=openai_ef)
+
+        question_collection.add(
+            documents=self.questions_df['question'].tolist(),
+            metadatas=[{"corpus_id": x} for x in self.questions_df['corpus_id'].tolist()],
+            ids=[str(i) for i in self.questions_df.index]
+        )
         
         question_db = question_collection.get(include=['embeddings'])
 
@@ -322,4 +340,10 @@ class GeneralBenchmark:
         brute_recall_std = np.std(brute_recall_scores)
         brute_recall_text = f"{brute_recall_mean:.3f} ± {brute_recall_std:.3f}"
 
-        return ioc_text, recall_text, brute_ioc_text, brute_recall_text
+        # return ioc_text, recall_text, brute_ioc_text, brute_recall_text
+        return {
+            "ioc_mean": brute_ioc_mean,
+            "ioc_std": brute_ioc_std,
+            "recall_mean": recall_mean,
+            "recall_std": recall_std,
+        }
