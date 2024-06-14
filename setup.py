@@ -6,8 +6,9 @@ setup(
     packages=find_packages(),
     install_requires=[
         "tiktoken",
-        "fuzzywuzzy"
+        "fuzzywuzzy",
         "pandas",
+        "numpy",
     ],
     author="Brandon A. Smith",
     author_email="brandonsmithpmpuk@gmail.com",

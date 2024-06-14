@@ -1,9 +1,11 @@
 from typing import Callable
 from chroma_research.utils import harsh_doc_search
+import chromadb.utils.embedding_functions as embedding_functions
 import os
 import pandas as pd
 import json
 import chromadb
+import numpy as np
 
 def sum_of_ranges(ranges):
     return sum(end - start for start, end in ranges)
@@ -85,7 +87,7 @@ def find_target_in_document(document, target):
 
 class GeneralBenchmark:
     # def __init__(self, name: str, description: str, benchmark: Callable):
-    def __init__(self, chunking_method, chroma_db_path=None, corpus_list=None):
+    def __init__(self, chroma_db_path=None, corpus_list=None):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         questions_df_path = csv_file_path = os.path.join(script_dir, 'general_benchmark_data', 'questions_df.csv')
         self.questions_df = pd.read_csv(questions_df_path)
@@ -102,9 +104,222 @@ class GeneralBenchmark:
         else:
             self.chroma_client = chromadb.Client()
     
-        # self.name = name
-        # self.description = description
-        # self.benchmark = benchmark
 
-    def run(self):
-        self.benchmark()
+    def _get_chunks_and_metadata(self, splitter):
+        # Warning: metadata will be incorrect if a chunk is repeated since we use .find() to find the start index. This isn't pratically an issue for chunks over 1000 characters.
+        documents = []
+        metadatas = []
+        for corpus_id in self.corpus_list:
+            with open(f'data/{corpus_id}.md', 'r') as file:
+                corpus = file.read()
+
+            current_documents = splitter.split_text(corpus)
+            current_metadatas = []
+            for document in current_documents:
+                try:
+                    _, start_index, end_index = harsh_doc_search(corpus, document)
+                except:
+                    print(f"Error in finding {document} in {corpus_id}")
+                    raise Exception(f"Error in finding {document} in {corpus_id}")
+                # start_index, end_index = find_target_in_document(corpus, document)
+                current_metadatas.append({"start_index": start_index, "end_index": end_index, "corpus_id": corpus_id})
+            documents.extend(current_documents)
+            metadatas.extend(current_metadatas)
+        return documents, metadatas
+
+    def _full_precision_score(self, chunk_metadatas):
+        ioc_scores = []
+        recall_scores = []
+        for index, row in self.questions_df.iterrows():
+            # Unpack question and references
+            # question, references = question_references
+            question = row['question']
+            references = row['references']
+            corpus_id = row['corpus_id']
+
+            ioc_score = 0
+            numerator_sets = []
+            denominator_chunks_sets = []
+            unused_highlights = [(x['start_index'], x['end_index']) for x in references]
+
+            for metadata in chunk_metadatas:
+                # Unpack chunk start and end indices
+                chunk_start, chunk_end, chunk_corpus_id = metadata['start_index'], metadata['end_index'], metadata['corpus_id']
+
+                if chunk_corpus_id != corpus_id:
+                    continue
+                
+                for ref_obj in references:
+                    reference = ref_obj['content']
+                    ref_start, ref_end = int(ref_obj['start_index']), int(ref_obj['end_index'])
+                    # Calculate intersection between chunk and reference
+                    intersection = intersect_two_ranges((chunk_start, chunk_end), (ref_start, ref_end))
+                    
+                    if intersection is not None:
+                        # Remove intersection from unused highlights
+                        unused_highlights = difference(unused_highlights, intersection)
+
+                        # Add intersection to numerator sets
+                        numerator_sets = union_ranges([intersection] + numerator_sets)
+                        
+                        # Add chunk to denominator sets
+                        denominator_chunks_sets = union_ranges([(chunk_start, chunk_end)] + denominator_chunks_sets)
+            
+            # Combine unused highlights and chunks for final denominator
+            denominator_sets = union_ranges(denominator_chunks_sets + unused_highlights)
+            
+            # Calculate ioc_score if there are numerator sets
+            if numerator_sets:
+                ioc_score = sum_of_ranges(numerator_sets) / sum_of_ranges(denominator_sets)
+            
+            ioc_scores.append(ioc_score)
+
+            recall_score = 1 - (sum_of_ranges(unused_highlights) / sum_of_ranges([(x['start_index'], x['end_index']) for x in references]))
+            recall_scores.append(recall_score)
+
+        return ioc_scores, recall_scores
+
+    def _scores_from_dataset_and_retrievals(self, question_metadatas):
+        ioc_scores = []
+        recall_scores = []
+        for (index, row), metadatas in zip(self.questions_df.iterrows(), question_metadatas):
+            # Unpack question and references
+            # question, references = question_references
+            question = row['question']
+            references = row['references']
+            corpus_id = row['corpus_id']
+
+            ioc_score = 0
+            numerator_sets = []
+            denominator_chunks_sets = []
+            unused_highlights = [(x['start_index'], x['end_index']) for x in references]
+
+            for metadata in metadatas:
+                # Unpack chunk start and end indices
+                chunk_start, chunk_end, chunk_corpus_id = metadata['start_index'], metadata['end_index'], metadata['corpus_id']
+
+                if chunk_corpus_id != corpus_id:
+                    continue
+                
+                # for reference, ref_start, ref_end in references:
+                for ref_obj in references:
+                    reference = ref_obj['content']
+                    ref_start, ref_end = int(ref_obj['start_index']), int(ref_obj['end_index'])
+                    
+                    # Calculate intersection between chunk and reference
+                    intersection = intersect_two_ranges((chunk_start, chunk_end), (ref_start, ref_end))
+                    
+                    if intersection is not None:
+                        # Remove intersection from unused highlights
+                        unused_highlights = difference(unused_highlights, intersection)
+
+                        # Add intersection to numerator sets
+                        numerator_sets = union_ranges([intersection] + numerator_sets)
+                        
+                        # Add chunk to denominator sets
+                        denominator_chunks_sets = union_ranges([(chunk_start, chunk_end)] + denominator_chunks_sets)
+            
+            # Combine unused highlights and chunks for final denominator
+            denominator_sets = union_ranges(denominator_chunks_sets + unused_highlights)
+            
+            # Calculate ioc_score if there are numerator sets
+            if numerator_sets:
+                ioc_score = sum_of_ranges(numerator_sets) / sum_of_ranges(denominator_sets)
+            
+            ioc_scores.append(ioc_score)
+
+            recall_score = 1 - (sum_of_ranges(unused_highlights) / sum_of_ranges([(x['start_index'], x['end_index']) for x in references]))
+            recall_scores.append(recall_score)
+
+        return ioc_scores, recall_scores
+
+    def _chunker_to_collection(self, chunker, BERT=False):
+        OPENAI_API_KEY = os.getenv('OPENAI_CHROMA_API_KEY')
+        openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+                        api_key=OPENAI_API_KEY,
+                        model_name="text-embedding-3-large"
+                    )
+        
+        collection_name = "auto_chunk"
+        
+        try:
+            self.chroma_client.delete_collection(collection_name)
+        except ValueError as e:
+            pass
+
+        if not BERT:
+            collection = self.chroma_client.create_collection(collection_name, embedding_function=openai_ef)
+        else:
+            collection = self.chroma_client.create_collection(collection_name)
+
+        docs, metas = self._get_chunks_and_metadata(chunker)
+
+        # print(len(docs), len(metas))
+
+        BATCH_SIZE = 500
+        for i in range(0, len(docs), BATCH_SIZE):
+            batch_docs = docs[i:i+BATCH_SIZE]
+            batch_metas = metas[i:i+BATCH_SIZE]
+            batch_ids = [str(i) for i in range(i, i+len(batch_docs))]
+            collection.add(
+                documents=batch_docs,
+                metadatas=batch_metas,
+                ids=batch_ids
+            )
+
+        return collection
+
+    def run(self, chunker, BERT=False):
+        # print("Starting Chunking")
+        collection = self._chunker_to_collection(chunker, BERT)
+        # print("Chunking Complete")
+
+        # questions = self.questions_df['question'].tolist()
+
+        question_collection = None
+        if not BERT:
+            OPENAI_API_KEY = os.getenv('OPENAI_CHROMA_API_KEY')
+            openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+                            api_key=OPENAI_API_KEY,
+                            model_name="text-embedding-3-large"
+                        )
+            question_collection = self.chroma_client.get_collection("questions_openai_large", embedding_function=openai_ef)
+        else:
+            question_collection = self.chroma_client.get_collection("questions_BERT")    
+        
+        question_db = question_collection.get(include=['embeddings'])
+
+        # Convert ids to integers for sorting
+        question_db['ids'] = [int(id) for id in question_db['ids']]
+        # Sort both ids and embeddings based on ids
+        _, sorted_embeddings = zip(*sorted(zip(question_db['ids'], question_db['embeddings'])))
+
+        # Sort questions_df in ascending order
+        self.questions_df = self.questions_df.sort_index()
+
+        # Retrieve the documents based on sorted embeddings
+        retrievals = collection.query(query_embeddings=list(sorted_embeddings), n_results=5)
+        # print("Retrieval Complete")
+
+        ioc_scores, recall_scores = self._scores_from_dataset_and_retrievals(retrievals['metadatas'])
+        brute_ioc_scores, brute_recall_scores = self._full_precision_score(collection.get()['metadatas'])
+
+        ioc_mean = np.mean(ioc_scores)
+        ioc_std = np.std(ioc_scores)
+        # ioc_text = f"{ioc_mean:.5f} ± {ioc_std:.5f}"
+        ioc_text = f"{ioc_mean:.3f} ± {ioc_std:.3f}"
+
+        brute_ioc_mean = np.mean(brute_ioc_scores)
+        brute_ioc_std = np.std(brute_ioc_scores)
+        brute_ioc_text = f"{brute_ioc_mean:.3f} ± {brute_ioc_std:.3f}"
+
+        recall_mean = np.mean(recall_scores)
+        recall_std = np.std(recall_scores)
+        # recall_text = f"{recall_mean:.5f} ± {recall_std:.5f}"
+        recall_text = f"{recall_mean:.3f} ± {recall_std:.3f}"
+
+        brute_recall_mean = np.mean(brute_recall_scores)
+        brute_recall_std = np.std(brute_recall_scores)
+        brute_recall_text = f"{brute_recall_mean:.3f} ± {brute_recall_std:.3f}"
+
+        return ioc_text, recall_text, brute_ioc_text, brute_recall_text
