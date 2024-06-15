@@ -1,14 +1,6 @@
-import tiktoken
 import re
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
-
-# Count the number of tokens in each page_content
-def num_tokens_from_string(string: str) -> int:
-    """Returns the number of tokens in a text string."""
-    encoding = tiktoken.get_encoding("cl100k_base")
-    num_tokens = len(encoding.encode(string, disallowed_special=()))
-    return num_tokens
 
 def find_query_despite_whitespace(document, query):
 

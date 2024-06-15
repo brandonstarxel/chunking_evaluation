@@ -342,8 +342,8 @@ class GeneralBenchmark:
 
         # return ioc_text, recall_text, brute_ioc_text, brute_recall_text
         return {
-            "ioc_mean": brute_ioc_mean,
-            "ioc_std": brute_ioc_std,
+            "iou_mean": brute_ioc_mean,
+            "iou_std": brute_ioc_std,
             "recall_mean": recall_mean,
             "recall_std": recall_std,
         }
