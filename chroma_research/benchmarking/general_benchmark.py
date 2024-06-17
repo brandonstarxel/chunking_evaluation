@@ -233,13 +233,7 @@ class GeneralBenchmark:
 
         return ioc_scores, recall_scores
 
-    def _chunker_to_collection(self, chunker, BERT=False, OPENAI_API_KEY=None):
-        # OPENAI_API_KEY = os.getenv('OPENAI_CHROMA_API_KEY')
-        openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-                        api_key=OPENAI_API_KEY,
-                        model_name="text-embedding-3-large"
-                    )
-        
+    def _chunker_to_collection(self, chunker, embedding_function):
         collection_name = "auto_chunk"
         
         try:
@@ -247,14 +241,9 @@ class GeneralBenchmark:
         except ValueError as e:
             pass
 
-        if not BERT:
-            collection = self.chroma_client.create_collection(collection_name, embedding_function=openai_ef)
-        else:
-            collection = self.chroma_client.create_collection(collection_name)
+        collection = self.chroma_client.create_collection(collection_name, embedding_function=embedding_function)
 
         docs, metas = self._get_chunks_and_metadata(chunker)
-
-        # print(len(docs), len(metas))
 
         BATCH_SIZE = 500
         for i in range(0, len(docs), BATCH_SIZE):
@@ -269,35 +258,14 @@ class GeneralBenchmark:
 
         return collection
 
-    def run(self, chunker, OPENAI_API_KEY, BERT=False):
-        # print("Starting Chunking")
-        collection = self._chunker_to_collection(chunker, BERT, OPENAI_API_KEY)
-        # print("Chunking Complete")
-
-        # questions = self.questions_df['question'].tolist()
-
-        # question_collection = None
-        # if not BERT:
-        #     OPENAI_API_KEY = os.getenv('OPENAI_CHROMA_API_KEY')
-        #     openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-        #                     api_key=OPENAI_API_KEY,
-        #                     model_name="text-embedding-3-large"
-        #                 )
-        #     question_collection = self.chroma_client.get_collection("questions_openai_large", embedding_function=openai_ef)
-        # else:
-        #     question_collection = self.chroma_client.get_collection("questions_BERT") 
+    def run(self, chunker, embedding_function):
+        collection = self._chunker_to_collection(chunker, embedding_function)
         
         try:
-            self.chroma_client.delete_collection("questions_BERT")
+            self.chroma_client.delete_collection("auto_questions")
         except ValueError as e:
             pass
-
-        # OPENAI_API_KEY = os.getenv('OPENAI_CHROMA_API_KEY')
-        openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-                        api_key=OPENAI_API_KEY,
-                        model_name="text-embedding-3-large"
-                    )
-        question_collection = self.chroma_client.create_collection("auto_questions", embedding_function=openai_ef)
+        question_collection = self.chroma_client.create_collection("auto_questions", embedding_function=embedding_function)
 
         question_collection.add(
             documents=self.questions_df['question'].tolist(),
@@ -322,23 +290,23 @@ class GeneralBenchmark:
         ioc_scores, recall_scores = self._scores_from_dataset_and_retrievals(retrievals['metadatas'])
         brute_ioc_scores, brute_recall_scores = self._full_precision_score(collection.get()['metadatas'])
 
-        ioc_mean = np.mean(ioc_scores)
-        ioc_std = np.std(ioc_scores)
-        # ioc_text = f"{ioc_mean:.5f} ± {ioc_std:.5f}"
-        ioc_text = f"{ioc_mean:.3f} ± {ioc_std:.3f}"
+        # ioc_mean = np.mean(ioc_scores)
+        # ioc_std = np.std(ioc_scores)
+        # # ioc_text = f"{ioc_mean:.5f} ± {ioc_std:.5f}"
+        # ioc_text = f"{ioc_mean:.3f} ± {ioc_std:.3f}"
 
         brute_ioc_mean = np.mean(brute_ioc_scores)
         brute_ioc_std = np.std(brute_ioc_scores)
-        brute_ioc_text = f"{brute_ioc_mean:.3f} ± {brute_ioc_std:.3f}"
+        # brute_ioc_text = f"{brute_ioc_mean:.3f} ± {brute_ioc_std:.3f}"
 
         recall_mean = np.mean(recall_scores)
         recall_std = np.std(recall_scores)
         # recall_text = f"{recall_mean:.5f} ± {recall_std:.5f}"
-        recall_text = f"{recall_mean:.3f} ± {recall_std:.3f}"
+        # recall_text = f"{recall_mean:.3f} ± {recall_std:.3f}"
 
-        brute_recall_mean = np.mean(brute_recall_scores)
-        brute_recall_std = np.std(brute_recall_scores)
-        brute_recall_text = f"{brute_recall_mean:.3f} ± {brute_recall_std:.3f}"
+        # brute_recall_mean = np.mean(brute_recall_scores)
+        # brute_recall_std = np.std(brute_recall_scores)
+        # brute_recall_text = f"{brute_recall_mean:.3f} ± {brute_recall_std:.3f}"
 
         # return ioc_text, recall_text, brute_ioc_text, brute_recall_text
         return {
