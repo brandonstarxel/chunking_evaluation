@@ -41,7 +41,7 @@ print(results)
 # 'recall_mean': 0.8091207841640163, 'recall_std': 0.3792297991952294}
 ```
 
-Usage and Benchmarking of ClusterSemanticChunker
+# Usage and Benchmarking of ClusterSemanticChunker
 This example demonstrates how to use our ClusterSemanticChunker and how you can benchmark it yourself.
 ```python
 from chroma_research import BaseChunker, GeneralBenchmark
