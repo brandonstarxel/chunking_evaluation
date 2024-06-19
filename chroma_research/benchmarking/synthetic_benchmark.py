@@ -22,12 +22,102 @@ class SyntheticBenchmark(BaseBenchmark):
         prompt_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'prompts')
         with open(os.path.join(prompt_path, 'question_maker_system.txt'), 'r') as f:
             self.question_maker_system_prompt = f.read()
+
+        with open(os.path.join(prompt_path, 'question_maker_approx_system.txt'), 'r') as f:
+            self.question_maker_approx_system_prompt = f.read()
         
         with open(os.path.join(prompt_path, 'question_maker_user.txt'), 'r') as f:
             self.question_maker_user_prompt = f.read()
 
+        with open(os.path.join(prompt_path, 'question_maker_approx_user.txt'), 'r') as f:
+            self.question_maker_approx_user_prompt = f.read()
+
     def _save_questions_df(self):
         self.synth_questions_df.to_csv(self.questions_csv_path, index=False)
+
+    def _tag_text(self, text):
+        chunk_length = 100
+        chunks = []
+        tag_indexes = [0]
+        start = 0
+        while start < len(text):
+            end = start + chunk_length
+            chunk = text[start:end]
+            if end < len(text):
+                # Find the last space within the chunk to avoid splitting a word
+                space_index = chunk.rfind(' ')
+                if space_index != -1:
+                    end = start + space_index + 1  # Include the space in the chunk
+                    chunk = text[start:end]
+            chunks.append(chunk)
+            tag_indexes.append(end)
+            start = end  # Move start to end to continue splitting
+
+        tagged_text = ""
+        for i, chunk in enumerate(chunks):
+            tagged_text += f"<start_chunk_{i}>" + chunk + f"<end_chunk_{i}>"
+
+        return tagged_text, tag_indexes
+
+    def _extract_question_and_approx_references(self, corpus, document_length=4000, prev_questions=[]):
+        if len(corpus) > document_length:
+            start_index = random.randint(0, len(corpus) - document_length)
+            document = corpus[start_index : start_index + document_length]
+        else:
+            start_index = 0
+            document = corpus
+        
+        if prev_questions is not None:
+            if len(prev_questions) > 20:
+                questions_sample = random.sample(prev_questions, 20)
+                prev_questions_str = '\n'.join(questions_sample)
+            else:
+                prev_questions_str = '\n'.join(prev_questions)
+        else:
+            prev_questions_str = ""
+
+        tagged_text, tag_indexes = self._tag_text(document)
+
+        completion = self.client.chat.completions.create(
+            model="gpt-4-turbo",
+            response_format={ "type": "json_object" },
+            max_tokens=600,
+            messages=[
+                {"role": "system", "content": self.question_maker_approx_system_prompt},
+                {"role": "user", "content": self.question_maker_approx_user_prompt.replace("{document}", tagged_text).replace("{prev_questions_str}", prev_questions_str)}
+            ]
+        )
+        
+        json_response = json.loads(completion.choices[0].message.content)
+        
+        try:
+            text_references = json_response['references']
+        except KeyError:
+            raise ValueError("The response does not contain a 'references' field.")
+        try:
+            question = json_response['question']
+        except KeyError:
+            raise ValueError("The response does not contain a 'question' field.")
+
+        references = []
+        for reference in text_references:
+            reference_keys = list(reference.keys())
+
+            if len(reference_keys) != 3:
+                raise ValueError(f"Each reference must have exactly 3 keys: 'content', 'start_chunk', and 'end_chunk'. Got keys: {reference_keys}")
+
+            if 'end_chunk' not in reference_keys:
+                reference_keys.remove('content')
+                reference_keys.remove('start_chunk')
+                end_chunk_key = reference_keys[0]
+                end_index = start_index + tag_indexes[reference[end_chunk_key]+1]
+            else:
+                end_index = start_index + tag_indexes[reference['end_chunk']+1]
+
+            start_index = start_index + tag_indexes[reference['start_chunk']]
+            references.append((corpus[start_index:end_index], start_index, end_index))
+        
+        return question, references
 
     def _extract_question_and_references(self, corpus, document_length=4000, prev_questions=[]):
         if len(corpus) > document_length:
@@ -77,7 +167,7 @@ class SyntheticBenchmark(BaseBenchmark):
         
         return question, references
 
-    def _generate_corpus_questions(self, corpus_id):
+    def _generate_corpus_questions(self, corpus_id, approx=False):
         with open(corpus_id, 'r') as file:
             corpus = file.read()
 
@@ -88,7 +178,10 @@ class SyntheticBenchmark(BaseBenchmark):
                 try:
                     print(f"Trying Question {i}")
                     questions_list = self.synth_questions_df[self.synth_questions_df['corpus_id'] == corpus_id]['question'].tolist()
-                    question, references = self._extract_question_and_references(corpus, 4000, questions_list)
+                    if approx:
+                        question, references = self._extract_question_and_approx_references(corpus, 4000, questions_list)
+                    else:
+                        question, references = self._extract_question_and_references(corpus, 4000, questions_list)
                     if len(references) > 5:
                         raise ValueError("The number of references exceeds 5.")
                     
@@ -115,12 +208,12 @@ class SyntheticBenchmark(BaseBenchmark):
             synth_questions_df = pd.DataFrame(columns=['question', 'references', 'corpus_id'])
         return synth_questions_df
 
-    def generate_questions_and_highlights(self):
+    def generate_questions_and_highlights(self, approximate_highlights=False):
         self.synth_questions_df = self._get_synth_questions_df()
 
         while True:
             for corpus_id in self.corpora_paths:
-                self._generate_corpus_questions(corpus_id)
+                self._generate_corpus_questions(corpus_id, approx=approximate_highlights)
 
     def _get_sim(self, target, references):
         response = self.client.embeddings.create(

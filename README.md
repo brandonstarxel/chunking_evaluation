@@ -122,6 +122,13 @@ Here are the steps you can take to develop a domain specific benchmark based off
     results = benchmark.run(chunker)
     print("Benchmark Results:", results)
     ```
+
+2. **Optional: If generation is unable to generate questions try approximate highlights**
+
+    ```python
+    # Generate questions and highlights, and save to CSV
+    benchmark.generate_questions_and_highlights(approximate_highlights=True)
+    ```
 ## Package Dependancies:
 - chroma
 - fuzzywuzzy
