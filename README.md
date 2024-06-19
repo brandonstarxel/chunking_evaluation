@@ -66,7 +66,63 @@ print(results)
 # 'recall_mean': 0.8973469551927365, 'recall_std': 0.29042203879923994}
 ```
 
-Requirements:
+## Synthetic Benchmark Pipeline
+
+Here are the steps you can take to develop a domain specific benchmark based off your own corpora.
+
+1. **Initialize the Environment**:
+
+    ```python
+    from chroma_research import SyntheticBenchmark
+    
+    # Specify the corpora paths and output CSV file
+    corpora_paths = [
+        'path/to/chatlogs.txt',
+        'path/to/finance.txt',
+        # Add more corpora files as needed
+    ]
+    questions_csv_path = 'generated_questions_highlights.csv'
+    
+    # Initialize the benchmark
+    benchmark = SyntheticBenchmark(corpora_paths, questions_csv_path, openai_api_key="OPENAI_API_KEY")
+    ```
+
+2. **Generate Questions and Highlights**:
+
+    ```python
+    # Generate questions and highlights, and save to CSV
+    benchmark.generate_questions_and_highlights()
+    ```
+
+3. **Apply Filters**:
+
+    ```python
+    # Apply filter to remove questions with poor highlights
+    benchmark.filter_poor_highlights(threshold=0.36)
+    
+    # Apply filter to remove duplicates
+    benchmark.filter_duplicates(threshold=0.6)
+    ```
+
+4. **Run the Benchmark**:
+
+    ```python
+    from chroma_research import BaseChunker
+
+    # Define a custom chunking class
+    class CustomChunker(BaseChunker):
+        def split_text(self, text):
+            # Custom chunking logic
+            return [text[i:i+1200] for i in range(0, len(text), 1200)]
+
+    # Instantiate the custom chunker
+    chunker = CustomChunker()
+
+    # Run the benchmark on the filtered data
+    results = benchmark.run(chunker)
+    print("Benchmark Results:", results)
+    ```
+## Package Dependancies:
 - chroma
 - fuzzywuzzy
 - pandas

@@ -1,0 +1,5 @@
+Text: {document}
+
+The following questions have already been used. Do not repeat them: {prev_questions_str}
+
+Do not repeat the above questions. Make your next question unique. Respond with references and a question in JSON. DO NOT USE THE WORD 'and' IN THE QUESTION UNLESS IT IS PART OF A PROPER NOUN.

@@ -1,6 +1,8 @@
 import re
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
+import os
+from chromadb.utils import embedding_functions
 
 def find_query_despite_whitespace(document, query):
 
@@ -19,8 +21,23 @@ def find_query_despite_whitespace(document, query):
     else:
         return None
 
-def harsh_doc_search(document, target):
+def rigorous_document_search(document: str, target: str):
+    """
+    This function performs a rigorous search of a target string within a document. 
+    It handles issues related to whitespace, changes in grammar, and other minor text alterations.
+    The function first checks for an exact match of the target in the document. 
+    If no exact match is found, it performs a raw search that accounts for variations in whitespace.
+    If the raw search also fails, it splits the document into sentences and uses fuzzy matching 
+    to find the sentence that best matches the target.
+    
+    Args:
+        document (str): The document in which to search for the target.
+        target (str): The string to search for within the document.
 
+    Returns:
+        tuple: A tuple containing the best match found in the document, its start index, and its end index.
+        If no match is found, returns None.
+    """
     if target.endswith('.'):
         target = target[:-1]
     
@@ -48,3 +65,13 @@ def harsh_doc_search(document, target):
     end_index = start_index + len(reference)
 
     return reference, start_index, end_index
+
+def get_openai_embedding_function():
+    openai_api_key = os.getenv('OPENAI_API_KEY')
+    if openai_api_key is None:
+        raise ValueError("You need to set an embedding function or set an OPENAI_API_KEY environment variable.")
+    embedding_function = embedding_functions.OpenAIEmbeddingFunction(
+        api_key=os.getenv('OPENAI_API_KEY'),
+        model_name="text-embedding-3-large"
+    )
+    return embedding_function
