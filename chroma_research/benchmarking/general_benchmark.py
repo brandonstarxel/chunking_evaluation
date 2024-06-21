@@ -15,4 +15,6 @@ class GeneralBenchmark(BaseBenchmark):
         }
 
         super().__init__(questions_df_path, chroma_db_path=chroma_db_path, corpora_id_paths=corpora_id_paths)
+
+        self.is_general = True
         

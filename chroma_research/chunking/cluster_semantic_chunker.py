@@ -24,7 +24,7 @@ class ClusterSemanticChunker(BaseChunker):
         
         if embedding_function is None:
             embedding_function = get_openai_embedding_function()
-        
+        self._chunk_size = max_chunk_size
         self.max_cluster = max_chunk_size//min_chunk_size
         self.embedding_function = embedding_function
         

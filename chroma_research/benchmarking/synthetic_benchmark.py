@@ -267,12 +267,14 @@ class SyntheticBenchmark(BaseBenchmark):
         full_questions_df.to_csv(self.questions_csv_path, index=False)
 
 
-    def filter_poor_highlights(self, threshold=0.36):
+    def filter_poor_highlights(self, threshold=0.36, corpora_subset=[]):
         if os.path.exists(self.questions_csv_path):
             synth_questions_df = pd.read_csv(self.questions_csv_path)
             if len(synth_questions_df) > 0:
                 synth_questions_df['references'] = synth_questions_df['references'].apply(json.loads)
                 corpus_list = synth_questions_df['corpus_id'].unique().tolist()
+                if corpora_subset:
+                    corpus_list = [c for c in corpus_list if c in corpora_subset]
                 for corpus_id in corpus_list:
                     self._corpus_filter_poor_highlights(corpus_id, synth_questions_df, threshold)
 
@@ -340,12 +342,14 @@ class SyntheticBenchmark(BaseBenchmark):
 
 
 
-    def filter_duplicates(self, threshold=0.78):
+    def filter_duplicates(self, threshold=0.78, corpora_subset=[]):
         if os.path.exists(self.questions_csv_path):
             synth_questions_df = pd.read_csv(self.questions_csv_path)
             if len(synth_questions_df) > 0:
                 synth_questions_df['references'] = synth_questions_df['references'].apply(json.loads)
                 corpus_list = synth_questions_df['corpus_id'].unique().tolist()
+                if corpora_subset:
+                    corpus_list = [c for c in corpus_list if c in corpora_subset]
                 for corpus_id in corpus_list:
                     self._corpus_filter_duplicates(corpus_id, synth_questions_df, threshold)
 

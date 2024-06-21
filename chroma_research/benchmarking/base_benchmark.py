@@ -104,6 +104,8 @@ class BaseBenchmark:
         else:
             self.chroma_client = chromadb.Client()
 
+        self.is_general = False
+
     def _load_questions_df(self):
         if os.path.exists(self.questions_csv_path):
             self.questions_df = pd.read_csv(self.questions_csv_path)
@@ -140,6 +142,9 @@ class BaseBenchmark:
     def _full_precision_score(self, chunk_metadatas):
         ioc_scores = []
         recall_scores = []
+
+        highlighted_chunks_count = []
+
         for index, row in self.questions_df.iterrows():
             # Unpack question and references
             # question, references = question_references
@@ -152,6 +157,8 @@ class BaseBenchmark:
             denominator_chunks_sets = []
             unused_highlights = [(x['start_index'], x['end_index']) for x in references]
 
+            highlighted_chunk_count = 0
+
             for metadata in chunk_metadatas:
                 # Unpack chunk start and end indices
                 chunk_start, chunk_end, chunk_corpus_id = metadata['start_index'], metadata['end_index'], metadata['corpus_id']
@@ -159,6 +166,8 @@ class BaseBenchmark:
                 if chunk_corpus_id != corpus_id:
                     continue
                 
+                contains_highlight = False
+
                 for ref_obj in references:
                     reference = ref_obj['content']
                     ref_start, ref_end = int(ref_obj['start_index']), int(ref_obj['end_index'])
@@ -166,6 +175,8 @@ class BaseBenchmark:
                     intersection = intersect_two_ranges((chunk_start, chunk_end), (ref_start, ref_end))
                     
                     if intersection is not None:
+                        contains_highlight = True
+
                         # Remove intersection from unused highlights
                         unused_highlights = difference(unused_highlights, intersection)
 
@@ -175,6 +186,11 @@ class BaseBenchmark:
                         # Add chunk to denominator sets
                         denominator_chunks_sets = union_ranges([(chunk_start, chunk_end)] + denominator_chunks_sets)
             
+                if contains_highlight:
+                    highlighted_chunk_count += 1
+                
+            highlighted_chunks_count.append(highlighted_chunk_count)
+
             # Combine unused highlights and chunks for final denominator
             denominator_sets = union_ranges(denominator_chunks_sets + unused_highlights)
             
@@ -187,24 +203,24 @@ class BaseBenchmark:
             recall_score = 1 - (sum_of_ranges(unused_highlights) / sum_of_ranges([(x['start_index'], x['end_index']) for x in references]))
             recall_scores.append(recall_score)
 
-        return ioc_scores, recall_scores
+        return ioc_scores, highlighted_chunks_count
 
-    def _scores_from_dataset_and_retrievals(self, question_metadatas):
-        ioc_scores = []
+    def _scores_from_dataset_and_retrievals(self, question_metadatas, highlighted_chunks_count):
+        iou_scores = []
         recall_scores = []
-        for (index, row), metadatas in zip(self.questions_df.iterrows(), question_metadatas):
+        precision_scores = []
+        for (index, row), highlighted_chunk_count, metadatas in zip(self.questions_df.iterrows(), highlighted_chunks_count, question_metadatas):
             # Unpack question and references
             # question, references = question_references
             question = row['question']
             references = row['references']
             corpus_id = row['corpus_id']
 
-            ioc_score = 0
             numerator_sets = []
             denominator_chunks_sets = []
             unused_highlights = [(x['start_index'], x['end_index']) for x in references]
 
-            for metadata in metadatas:
+            for metadata in metadatas[:highlighted_chunk_count]:
                 # Unpack chunk start and end indices
                 chunk_start, chunk_end, chunk_corpus_id = metadata['start_index'], metadata['end_index'], metadata['corpus_id']
 
@@ -229,19 +245,26 @@ class BaseBenchmark:
                         # Add chunk to denominator sets
                         denominator_chunks_sets = union_ranges([(chunk_start, chunk_end)] + denominator_chunks_sets)
             
-            # Combine unused highlights and chunks for final denominator
-            denominator_sets = union_ranges(denominator_chunks_sets + unused_highlights)
-            
-            # Calculate ioc_score if there are numerator sets
-            if numerator_sets:
-                ioc_score = sum_of_ranges(numerator_sets) / sum_of_ranges(denominator_sets)
-            
-            ioc_scores.append(ioc_score)
 
-            recall_score = 1 - (sum_of_ranges(unused_highlights) / sum_of_ranges([(x['start_index'], x['end_index']) for x in references]))
+            if numerator_sets:
+                numerator_value = sum_of_ranges(numerator_sets)
+            else:
+                numerator_value = 0
+
+            recall_denominator = sum_of_ranges([(x['start_index'], x['end_index']) for x in references])
+            precision_denominator = sum_of_ranges([(x['start_index'], x['end_index']) for x in metadatas[:highlighted_chunk_count]])
+            iou_denominator = precision_denominator + sum_of_ranges(unused_highlights)
+
+            recall_score = numerator_value / recall_denominator
             recall_scores.append(recall_score)
 
-        return ioc_scores, recall_scores
+            precision_score = numerator_value / precision_denominator
+            precision_scores.append(precision_score)
+
+            iou_score = numerator_value / iou_denominator
+            iou_scores.append(iou_score)
+
+        return iou_scores, recall_scores, precision_scores
 
     def _chunker_to_collection(self, chunker, embedding_function):
         collection_name = "auto_chunk"
@@ -251,7 +274,7 @@ class BaseBenchmark:
         except ValueError as e:
             pass
 
-        collection = self.chroma_client.create_collection(collection_name, embedding_function=embedding_function)
+        collection = self.chroma_client.create_collection(collection_name, embedding_function=embedding_function, metadata={"hnsw:search_ef":50})
 
         docs, metas = self._get_chunks_and_metadata(chunker)
 
@@ -266,6 +289,9 @@ class BaseBenchmark:
                 ids=batch_ids
             )
 
+            # print("Documents: ", batch_docs)
+            # print("Metadatas: ", batch_metas)
+
         return collection
     
     def _convert_question_references_to_json(self):
@@ -278,25 +304,52 @@ class BaseBenchmark:
         self.questions_df['references'] = self.questions_df['references'].apply(safe_json_loads)
 
 
-    def run(self, chunker, embedding_function=None):
-        self._load_questions_df()
+    def run(self, chunker, embedding_function=None, retrieve:int = -1):
+        """
+        This function runs the benchmark over the provided chunker.
 
+        Parameters:
+        chunker: The chunker to benchmark over.
+        embedding_function: The embedding function to use for calculating the nearest neighbours during the retrieval step. If not provided, the default OpenAI embedding function is used.
+        retrieve: The number of chunks to retrieve per question. If set to -1, the function will retrieve the minimum number of chunks that contain excerpts for a given query. This is typically around 1 to 3 but can vary by question. By setting a specific value for retrieve, this number is fixed for all queries.
+        """
+        self._load_questions_df()
         if embedding_function is None:
             embedding_function = get_openai_embedding_function()
 
         collection = self._chunker_to_collection(chunker, embedding_function)
-        
-        try:
-            self.chroma_client.delete_collection("auto_questions")
-        except ValueError as e:
-            pass
-        question_collection = self.chroma_client.create_collection("auto_questions", embedding_function=embedding_function)
 
-        question_collection.add(
-            documents=self.questions_df['question'].tolist(),
-            metadatas=[{"corpus_id": x} for x in self.questions_df['corpus_id'].tolist()],
-            ids=[str(i) for i in self.questions_df.index]
-        )
+        question_collection = None
+
+        if self.is_general:
+            general_benchmark_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'general_benchmark_data')
+            questions_client = chromadb.PersistentClient(path=os.path.join(general_benchmark_path, 'questions_db'))
+            if embedding_function.__class__.__name__ == "OpenAIEmbeddingFunction":
+                try:
+                    if embedding_function._model_name == "text-embedding-3-large":
+                        question_collection = questions_client.get_collection("auto_questions_openai_large", embedding_function=embedding_function)
+                    elif embedding_function._model_name == "text-embedding-3-small":
+                        question_collection = questions_client.get_collection("auto_questions_openai_small", embedding_function=embedding_function)
+                except e:
+                    print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of OpenAI's embedding function. The error: ", e)
+            elif embedding_function.__class__.__name__ == "SentenceTransformerEmbeddingFunction":
+                try:
+                    question_collection = questions_client.get_collection("auto_questions_sentence_transformer", embedding_function=embedding_function)
+                except:
+                    print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of SentenceTransformer's embedding function. The error: ", e)
+
+        if not self.is_general or question_collection is None:
+            print("FAILED TO LOAD GENERAL BENCHMARK")
+            try:
+                self.chroma_client.delete_collection("auto_questions")
+            except ValueError as e:
+                pass
+            question_collection = self.chroma_client.create_collection("auto_questions", embedding_function=embedding_function, metadata={"hnsw:search_ef":50})
+            question_collection.add(
+                documents=self.questions_df['question'].tolist(),
+                metadatas=[{"corpus_id": x} for x in self.questions_df['corpus_id'].tolist()],
+                ids=[str(i) for i in self.questions_df.index]
+            )
         
         question_db = question_collection.get(include=['embeddings'])
 
@@ -308,35 +361,63 @@ class BaseBenchmark:
         # Sort questions_df in ascending order
         self.questions_df = self.questions_df.sort_index()
 
+        brute_iou_scores, highlighted_chunks_count = self._full_precision_score(collection.get()['metadatas'])
+
+        if retrieve == -1:
+            maximum_n = min(20, max(highlighted_chunks_count))
+        else:
+            highlighted_chunks_count = [retrieve] * len(highlighted_chunks_count)
+            maximum_n = retrieve
+
         # Retrieve the documents based on sorted embeddings
-        retrievals = collection.query(query_embeddings=list(sorted_embeddings), n_results=5)
-        # print("Retrieval Complete")
+        retrievals = collection.query(query_embeddings=list(sorted_embeddings), n_results=maximum_n)
 
-        ioc_scores, recall_scores = self._scores_from_dataset_and_retrievals(retrievals['metadatas'])
-        brute_ioc_scores, brute_recall_scores = self._full_precision_score(collection.get()['metadatas'])
+        iou_scores, recall_scores, precision_scores = self._scores_from_dataset_and_retrievals(retrievals['metadatas'], highlighted_chunks_count)
 
-        # ioc_mean = np.mean(ioc_scores)
-        # ioc_std = np.std(ioc_scores)
-        # # ioc_text = f"{ioc_mean:.5f} ± {ioc_std:.5f}"
-        # ioc_text = f"{ioc_mean:.3f} ± {ioc_std:.3f}"
 
-        brute_ioc_mean = np.mean(brute_ioc_scores)
-        brute_ioc_std = np.std(brute_ioc_scores)
-        # brute_ioc_text = f"{brute_ioc_mean:.3f} ± {brute_ioc_std:.3f}"
+        corpora_scores = {
+
+        }
+        for index, row in self.questions_df.iterrows():
+            if row['corpus_id'] not in corpora_scores:
+                corpora_scores[row['corpus_id']] = {
+                    "brute_iou_scores": [],
+                    "iou_scores": [],
+                    "recall_scores": [],
+                    "precision_scores": []
+                }
+            
+            corpora_scores[row['corpus_id']]['brute_iou_scores'].append(brute_iou_scores[index])
+            corpora_scores[row['corpus_id']]['iou_scores'].append(iou_scores[index])
+            corpora_scores[row['corpus_id']]['recall_scores'].append(recall_scores[index])
+            corpora_scores[row['corpus_id']]['precision_scores'].append(precision_scores[index])
+
+
+        brute_iou_mean = np.mean(brute_iou_scores)
+        brute_iou_std = np.std(brute_iou_scores)
 
         recall_mean = np.mean(recall_scores)
         recall_std = np.std(recall_scores)
-        # recall_text = f"{recall_mean:.5f} ± {recall_std:.5f}"
-        # recall_text = f"{recall_mean:.3f} ± {recall_std:.3f}"
 
-        # brute_recall_mean = np.mean(brute_recall_scores)
-        # brute_recall_std = np.std(brute_recall_scores)
-        # brute_recall_text = f"{brute_recall_mean:.3f} ± {brute_recall_std:.3f}"
+        iou_mean = np.mean(iou_scores)
+        iou_std = np.std(iou_scores)
 
-        # return ioc_text, recall_text, brute_ioc_text, brute_recall_text
+        precision_mean = np.mean(precision_scores)
+        precision_std = np.std(precision_scores)
+
+        # print("Recall scores: ", recall_scores)
+        # print("Precision scores: ", precision_scores)
+        # print("Recall Mean: ", recall_mean)
+        # print("Precision Mean: ", precision_mean)
+
         return {
-            "iou_mean": brute_ioc_mean,
-            "iou_std": brute_ioc_std,
+            "corpora_scores": corpora_scores,
+            "iou_full_mean": brute_iou_mean,
+            "iou_full_std": brute_iou_std,
+            "iou_mean": iou_mean,
+            "iou_std": iou_std,
             "recall_mean": recall_mean,
             "recall_std": recall_std,
+            "precision_mean": precision_mean,
+            "precision_std": precision_std
         }

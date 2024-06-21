@@ -134,3 +134,4 @@ Here are the steps you can take to develop a domain specific benchmark based off
 - fuzzywuzzy
 - pandas
 - numpy
+- tiktoken
