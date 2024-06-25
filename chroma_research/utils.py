@@ -3,6 +3,7 @@ from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import os
 from chromadb.utils import embedding_functions
+import tiktoken
 
 def find_query_despite_whitespace(document, query):
 
@@ -75,3 +76,10 @@ def get_openai_embedding_function():
         model_name="text-embedding-3-large"
     )
     return embedding_function
+
+# Count the number of tokens in each page_content
+def openai_token_count(string: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.get_encoding("cl100k_base")
+    num_tokens = len(encoding.encode(string, disallowed_special=()))
+    return num_tokens

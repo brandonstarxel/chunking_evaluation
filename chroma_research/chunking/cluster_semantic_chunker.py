@@ -5,14 +5,7 @@ import numpy as np
 import tiktoken
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from chroma_research.utils import get_openai_embedding_function
-
-# Count the number of tokens in each page_content
-def openai_token_count(string: str) -> int:
-    """Returns the number of tokens in a text string."""
-    encoding = tiktoken.get_encoding("cl100k_base")
-    num_tokens = len(encoding.encode(string, disallowed_special=()))
-    return num_tokens
+from chroma_research.utils import get_openai_embedding_function, openai_token_count
 
 class ClusterSemanticChunker(BaseChunker):
     def __init__(self, embedding_function=None, max_chunk_size=400, min_chunk_size=50, length_function=openai_token_count):

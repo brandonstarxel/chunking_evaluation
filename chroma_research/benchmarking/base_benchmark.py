@@ -266,15 +266,25 @@ class BaseBenchmark:
 
         return iou_scores, recall_scores, precision_scores
 
-    def _chunker_to_collection(self, chunker, embedding_function):
-        collection_name = "auto_chunk"
-        
-        try:
-            self.chroma_client.delete_collection(collection_name)
-        except ValueError as e:
-            pass
+    def _chunker_to_collection(self, chunker, embedding_function, chroma_db_path:str = None, collection_name:str = None):
+        collection = None
 
-        collection = self.chroma_client.create_collection(collection_name, embedding_function=embedding_function, metadata={"hnsw:search_ef":50})
+        if chroma_db_path is not None:
+            try:
+                chunk_client = chromadb.PersistentClient(path=chroma_db_path)
+                collection = chunk_client.create_collection(collection_name, embedding_function=embedding_function)
+                print("Created collection: ", collection_name)
+            except Exception as e:
+                pass
+                # This shouldn't throw but for whatever reason, if it does we will default to below.
+
+        collection_name = "auto_chunk"
+        if collection is None:
+            try:
+                self.chroma_client.delete_collection(collection_name)
+            except ValueError as e:
+                pass
+            collection = self.chroma_client.create_collection(collection_name, embedding_function=embedding_function, metadata={"hnsw:search_ef":50})
 
         docs, metas = self._get_chunks_and_metadata(chunker)
 
@@ -304,7 +314,7 @@ class BaseBenchmark:
         self.questions_df['references'] = self.questions_df['references'].apply(safe_json_loads)
 
 
-    def run(self, chunker, embedding_function=None, retrieve:int = -1):
+    def run(self, chunker, embedding_function=None, retrieve:int = -1, db_to_save_chunks: str = None):
         """
         This function runs the benchmark over the provided chunker.
 
@@ -317,7 +327,20 @@ class BaseBenchmark:
         if embedding_function is None:
             embedding_function = get_openai_embedding_function()
 
-        collection = self._chunker_to_collection(chunker, embedding_function)
+        collection = None
+        if db_to_save_chunks is not None:
+            chunk_size = chunker._chunk_size if hasattr(chunker, '_chunk_size') else "0"
+            chunk_overlap = chunker._chunk_overlap if hasattr(chunker, '_chunk_overlap') else "0"
+            collection_name = embedding_function.__class__.__name__ + '_' + chunker.__class__.__name__ + '_' + str(int(chunk_size)) + '_' + str(int(chunk_overlap))
+            try:
+                chunk_client = chromadb.PersistentClient(path=db_to_save_chunks)
+                collection = chunk_client.get_collection(collection_name, embedding_function=embedding_function)
+            except Exception as e:
+                # Get collection throws if the collection does not exist. We will create it below if it does not exist.
+                collection = self._chunker_to_collection(chunker, embedding_function, chroma_db_path=db_to_save_chunks, collection_name=collection_name)
+
+        if collection is None:
+            collection = self._chunker_to_collection(chunker, embedding_function)
 
         question_collection = None
 
@@ -330,7 +353,7 @@ class BaseBenchmark:
                         question_collection = questions_client.get_collection("auto_questions_openai_large", embedding_function=embedding_function)
                     elif embedding_function._model_name == "text-embedding-3-small":
                         question_collection = questions_client.get_collection("auto_questions_openai_small", embedding_function=embedding_function)
-                except e:
+                except Exception as e:
                     print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of OpenAI's embedding function. The error: ", e)
             elif embedding_function.__class__.__name__ == "SentenceTransformerEmbeddingFunction":
                 try:
@@ -368,6 +391,9 @@ class BaseBenchmark:
         else:
             highlighted_chunks_count = [retrieve] * len(highlighted_chunks_count)
             maximum_n = retrieve
+
+        # arr_bytes = np.array(list(sorted_embeddings)).tobytes()
+        # print("Hash: ", hashlib.md5(arr_bytes).hexdigest())
 
         # Retrieve the documents based on sorted embeddings
         retrievals = collection.query(query_embeddings=list(sorted_embeddings), n_results=maximum_n)
