@@ -272,9 +272,10 @@ class BaseBenchmark:
         if chroma_db_path is not None:
             try:
                 chunk_client = chromadb.PersistentClient(path=chroma_db_path)
-                collection = chunk_client.create_collection(collection_name, embedding_function=embedding_function)
+                collection = chunk_client.create_collection(collection_name, embedding_function=embedding_function, metadata={"hnsw:search_ef":50})
                 print("Created collection: ", collection_name)
             except Exception as e:
+                print("Failed to create collection: ", e)
                 pass
                 # This shouldn't throw but for whatever reason, if it does we will default to below.
 
@@ -331,7 +332,10 @@ class BaseBenchmark:
         if db_to_save_chunks is not None:
             chunk_size = chunker._chunk_size if hasattr(chunker, '_chunk_size') else "0"
             chunk_overlap = chunker._chunk_overlap if hasattr(chunker, '_chunk_overlap') else "0"
-            collection_name = embedding_function.__class__.__name__ + '_' + chunker.__class__.__name__ + '_' + str(int(chunk_size)) + '_' + str(int(chunk_overlap))
+            embedding_function_name = embedding_function.__class__.__name__
+            if embedding_function_name == "SentenceTransformerEmbeddingFunction":
+                embedding_function_name = "SentEmbFunc"
+            collection_name = embedding_function_name + '_' + chunker.__class__.__name__ + '_' + str(int(chunk_size)) + '_' + str(int(chunk_overlap))
             try:
                 chunk_client = chromadb.PersistentClient(path=db_to_save_chunks)
                 collection = chunk_client.get_collection(collection_name, embedding_function=embedding_function)
