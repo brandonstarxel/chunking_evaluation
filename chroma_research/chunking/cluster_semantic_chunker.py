@@ -12,7 +12,8 @@ class ClusterSemanticChunker(BaseChunker):
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=min_chunk_size,
             chunk_overlap=0,
-            length_function=openai_token_count
+            length_function=openai_token_count,
+            separators = ["\n\n", "\n", ".", "?", "!", " ", ""]
             )
         
         if embedding_function is None:
