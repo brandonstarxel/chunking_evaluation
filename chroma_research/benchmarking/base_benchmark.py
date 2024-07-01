@@ -315,7 +315,7 @@ class BaseBenchmark:
         self.questions_df['references'] = self.questions_df['references'].apply(safe_json_loads)
 
 
-    def run(self, chunker, embedding_function=None, retrieve:int = -1, db_to_save_chunks: str = None):
+    def run(self, chunker, embedding_function=None, retrieve:int = 5, db_to_save_chunks: str = None):
         """
         This function runs the benchmark over the provided chunker.
 
