@@ -411,13 +411,13 @@ class BaseBenchmark:
         for index, row in self.questions_df.iterrows():
             if row['corpus_id'] not in corpora_scores:
                 corpora_scores[row['corpus_id']] = {
-                    "precision_sigma_scores": [],
+                    "precision_omega_scores": [],
                     "iou_scores": [],
                     "recall_scores": [],
                     "precision_scores": []
                 }
             
-            corpora_scores[row['corpus_id']]['precision_sigma_scores'].append(brute_iou_scores[index])
+            corpora_scores[row['corpus_id']]['precision_omega_scores'].append(brute_iou_scores[index])
             corpora_scores[row['corpus_id']]['iou_scores'].append(iou_scores[index])
             corpora_scores[row['corpus_id']]['recall_scores'].append(recall_scores[index])
             corpora_scores[row['corpus_id']]['precision_scores'].append(precision_scores[index])
@@ -446,8 +446,8 @@ class BaseBenchmark:
             "iou_std": iou_std,
             "recall_mean": recall_mean,
             "recall_std": recall_std,
-            "precision_sigma_mean": brute_iou_mean,
-            "precision_sigma_std": brute_iou_std,
+            "precision_omega_mean": brute_iou_mean,
+            "precision_omega_std": brute_iou_std,
             "precision_mean": precision_mean,
             "precision_std": precision_std
         }
