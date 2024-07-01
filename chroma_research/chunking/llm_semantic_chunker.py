@@ -1,6 +1,6 @@
 from .base_chunker import BaseChunker
 from chroma_research.utils import openai_token_count
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from chroma_research.chunking import RecursiveTokenChunker
 import anthropic
 import os
 import backoff
@@ -75,7 +75,7 @@ class LLMSemanticChunker(BaseChunker):
         else:
             raise ValueError("Invalid organisation. Please choose either 'openai' or 'anthropic'.")
 
-        self.splitter = RecursiveCharacterTextSplitter(
+        self.splitter = RecursiveTokenChunker(
             chunk_size=50,
             chunk_overlap=0,
             length_function=openai_token_count

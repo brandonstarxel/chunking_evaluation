@@ -3,13 +3,13 @@ from typing import List
 
 import numpy as np
 import tiktoken
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from chroma_research.chunking import RecursiveTokenChunker
 
 from chroma_research.utils import get_openai_embedding_function, openai_token_count
 
 class ClusterSemanticChunker(BaseChunker):
     def __init__(self, embedding_function=None, max_chunk_size=400, min_chunk_size=50, length_function=openai_token_count):
-        self.splitter = RecursiveCharacterTextSplitter(
+        self.splitter = RecursiveTokenChunker(
             chunk_size=min_chunk_size,
             chunk_overlap=0,
             length_function=openai_token_count,
