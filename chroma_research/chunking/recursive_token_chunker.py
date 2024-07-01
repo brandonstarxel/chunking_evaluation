@@ -45,7 +45,7 @@ class RecursiveTokenChunker(TextSplitter):
     ) -> None:
         """Create a new TextSplitter."""
         super().__init__(chunk_size=chunk_size, chunk_overlap=chunk_overlap, keep_separator=keep_separator, **kwargs)
-        self._separators = separators or ["\n\n", "\n", " ", ""]
+        self._separators = separators or ["\n\n", "\n", ".", "?", "!", " ", ""]
         self._is_separator_regex = is_separator_regex
 
     def _split_text(self, text: str, separators: List[str]) -> List[str]:
