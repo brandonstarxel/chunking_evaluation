@@ -9,6 +9,7 @@ from .base_benchmark import BaseBenchmark
 import pandas as pd
 import numpy as np
 from openai import OpenAI
+from importlib import resources
 
 class SyntheticBenchmark(BaseBenchmark):
     def __init__(self, corpora_paths: List[str], questions_csv_path: str, chroma_db_path:str = None, openai_api_key=None):
@@ -19,18 +20,18 @@ class SyntheticBenchmark(BaseBenchmark):
 
         self.synth_questions_df = None
 
-        prompt_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'prompts')
-        with open(os.path.join(prompt_path, 'question_maker_system.txt'), 'r') as f:
-            self.question_maker_system_prompt = f.read()
+        with resources.as_file(resources.files('chroma_research.benchmarking') / 'prompts') as prompt_path:
+            with open(os.path.join(prompt_path, 'question_maker_system.txt'), 'r') as f:
+                self.question_maker_system_prompt = f.read()
 
-        with open(os.path.join(prompt_path, 'question_maker_approx_system.txt'), 'r') as f:
-            self.question_maker_approx_system_prompt = f.read()
-        
-        with open(os.path.join(prompt_path, 'question_maker_user.txt'), 'r') as f:
-            self.question_maker_user_prompt = f.read()
+            with open(os.path.join(prompt_path, 'question_maker_approx_system.txt'), 'r') as f:
+                self.question_maker_approx_system_prompt = f.read()
+            
+            with open(os.path.join(prompt_path, 'question_maker_user.txt'), 'r') as f:
+                self.question_maker_user_prompt = f.read()
 
-        with open(os.path.join(prompt_path, 'question_maker_approx_user.txt'), 'r') as f:
-            self.question_maker_approx_user_prompt = f.read()
+            with open(os.path.join(prompt_path, 'question_maker_approx_user.txt'), 'r') as f:
+                self.question_maker_approx_user_prompt = f.read()
 
     def _save_questions_df(self):
         self.synth_questions_df.to_csv(self.questions_csv_path, index=False)

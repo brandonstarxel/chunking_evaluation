@@ -7,6 +7,7 @@ import json
 import chromadb
 import numpy as np
 from typing import List
+from importlib import resources
 
 def sum_of_ranges(ranges):
     return sum(end - start for start, end in ranges)
@@ -349,21 +350,21 @@ class BaseBenchmark:
         question_collection = None
 
         if self.is_general:
-            general_benchmark_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'general_benchmark_data')
-            questions_client = chromadb.PersistentClient(path=os.path.join(general_benchmark_path, 'questions_db'))
-            if embedding_function.__class__.__name__ == "OpenAIEmbeddingFunction":
-                try:
-                    if embedding_function._model_name == "text-embedding-3-large":
-                        question_collection = questions_client.get_collection("auto_questions_openai_large", embedding_function=embedding_function)
-                    elif embedding_function._model_name == "text-embedding-3-small":
-                        question_collection = questions_client.get_collection("auto_questions_openai_small", embedding_function=embedding_function)
-                except Exception as e:
-                    print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of OpenAI's embedding function. The error: ", e)
-            elif embedding_function.__class__.__name__ == "SentenceTransformerEmbeddingFunction":
-                try:
-                    question_collection = questions_client.get_collection("auto_questions_sentence_transformer", embedding_function=embedding_function)
-                except:
-                    print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of SentenceTransformer's embedding function. The error: ", e)
+            with resources.as_file(resources.files('chroma_research.benchmarking') / 'general_benchmark_data') as general_benchmark_path:
+                questions_client = chromadb.PersistentClient(path=os.path.join(general_benchmark_path, 'questions_db'))
+                if embedding_function.__class__.__name__ == "OpenAIEmbeddingFunction":
+                    try:
+                        if embedding_function._model_name == "text-embedding-3-large":
+                            question_collection = questions_client.get_collection("auto_questions_openai_large", embedding_function=embedding_function)
+                        elif embedding_function._model_name == "text-embedding-3-small":
+                            question_collection = questions_client.get_collection("auto_questions_openai_small", embedding_function=embedding_function)
+                    except Exception as e:
+                        print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of OpenAI's embedding function. The error: ", e)
+                elif embedding_function.__class__.__name__ == "SentenceTransformerEmbeddingFunction":
+                    try:
+                        question_collection = questions_client.get_collection("auto_questions_sentence_transformer", embedding_function=embedding_function)
+                    except:
+                        print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of SentenceTransformer's embedding function. The error: ", e)
 
         if not self.is_general or question_collection is None:
             print("FAILED TO LOAD GENERAL BENCHMARK")
