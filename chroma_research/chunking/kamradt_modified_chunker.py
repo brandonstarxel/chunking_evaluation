@@ -14,7 +14,7 @@ class KamradtModifiedChunker(BaseChunker):
         self, 
         avg_chunk_size:int=400, 
         min_chunk_size:int=50, 
-        embedding_function: Optional[EmbeddingFunction[Embeddable]] = get_openai_embedding_function(), 
+        embedding_function: Optional[EmbeddingFunction[Embeddable]] = None, 
         length_function=openai_token_count
         ):
         
