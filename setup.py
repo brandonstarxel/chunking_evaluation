@@ -10,7 +10,10 @@ setup(
         "pandas",
         "numpy",
         "tqdm",
-        "chromadb"
+        "chromadb",
+        "python-Levenshtein",
+        "openai",
+        "anthropic",
     ],
     author="Brandon A. Smith",
     author_email="brandonsmithpmpuk@gmail.com",
