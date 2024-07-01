@@ -28,7 +28,7 @@ setup(
     ],
     include_package_data=True,
     package_data={
-        'chroma_research': ['benchmarking/general_benchmark_data/corpora/*']
+        'chroma_research': ['benchmarking/general_benchmark_data/**/*']
     },
     python_requires='>=3.6',
 )

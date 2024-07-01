@@ -1,1 +1,1 @@
-include chroma_research/benchmarking/general_benchmark_data/corpora/*
+recursive-include chroma_research/benchmarking/general_benchmark_data *
