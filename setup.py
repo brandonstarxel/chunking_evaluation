@@ -9,7 +9,8 @@ setup(
         "fuzzywuzzy",
         "pandas",
         "numpy",
-        "tqdm"
+        "tqdm",
+        "chromadb"
     ],
     author="Brandon A. Smith",
     author_email="brandonsmithpmpuk@gmail.com",
