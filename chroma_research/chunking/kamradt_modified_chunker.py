@@ -1,3 +1,6 @@
+# This script is adapted from the Greg Kamradt's notebook on chunking.
+# Original code can be found at: https://github.com/FullStackRetrieval-com/RetrievalTutorials/blob/main/tutorials/LevelsOfTextSplitting/5_Levels_Of_Text_Splitting.ipynb
+
 from typing import Optional
 from .base_chunker import BaseChunker
 from .recursive_token_chunker import RecursiveTokenChunker
@@ -10,6 +13,34 @@ from chromadb.api.types import (
 import numpy as np
 
 class KamradtModifiedChunker(BaseChunker):
+    """
+    A chunker that splits text into chunks of approximately a specified average size based on semantic similarity.
+
+    This was adapted from Greg Kamradt's notebook on chunking but with the modification of including an average chunk size parameter. The original code can be found at: https://github.com/FullStackRetrieval-com/RetrievalTutorials/blob/main/tutorials/LevelsOfTextSplitting/5_Levels_Of_Text_Splitting.ipynb
+
+    This class extends the functionality of the `BaseChunker` by incorporating a method to combine sentences based on a buffer size, calculate cosine distances between combined sentences, and perform a binary search on similarity thresholds to achieve chunks of desired average size.
+
+    Attributes:
+        avg_chunk_size (int): The desired average chunk size in terms of token count. Default is 400.
+        min_chunk_size (int): The minimum chunk size in terms of token count. Default is 50.
+        embedding_function (EmbeddingFunction[Embeddable], optional): A function that converts text to embeddings. Default is the OpenAI embedding function.
+        length_function (function): A function that calculates the number of tokens in a text. Default is `openai_token_count`.
+
+    Methods:
+        combine_sentences(sentences, buffer_size=1):
+            Combines sentences with a specified buffer size to create context-rich sentence groups.
+
+        calculate_cosine_distances(sentences):
+            Calculates cosine distances between combined sentences using their embeddings.
+
+        split_text(text):
+            Splits the input text into chunks based on the calculated cosine distances and the specified average chunk size.
+
+    Example:
+        chunker = KamradtModifiedChunker(avg_chunk_size=300)
+        text = "Your text to be chunked."
+        chunks = chunker.split_text(text)
+    """
     def __init__(
         self, 
         avg_chunk_size:int=400, 
@@ -17,6 +48,16 @@ class KamradtModifiedChunker(BaseChunker):
         embedding_function: Optional[EmbeddingFunction[Embeddable]] = None, 
         length_function=openai_token_count
         ):
+        """
+        Initializes the KamradtModifiedChunker with the specified parameters.
+
+        Args:
+            avg_chunk_size (int, optional): The desired average chunk size in tokens. Defaults to 400.
+            min_chunk_size (int, optional): The minimum chunk size in tokens. Defaults to 50.
+            embedding_function (EmbeddingFunction[Embeddable], optional): A function to obtain embeddings for text. Defaults to OpenAI's embedding function if not provided.
+            length_function (function, optional): A function to calculate token length of a text. Defaults to `openai_token_count`.
+        """
+        
         
         self.splitter = RecursiveTokenChunker(
             chunk_size=min_chunk_size,
@@ -103,6 +144,16 @@ class KamradtModifiedChunker(BaseChunker):
         return distances, sentences
 
     def split_text(self, text):
+        """
+        Splits the input text into chunks of approximately the specified average size based on semantic similarity.
+
+        Args:
+            text (str): The input text to be split into chunks.
+
+        Returns:
+            list of str: The list of text chunks.
+        """
+                
         sentences_strips = self.splitter.split_text(text)
 
         sentences = [{'sentence': x, 'index' : i} for i, x in enumerate(sentences_strips)]
