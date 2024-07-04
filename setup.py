@@ -28,7 +28,7 @@ setup(
     ],
     include_package_data=True,
     package_data={
-        'chunking_benchmark': ['benchmarking/general_benchmark_data/**/*']
+        'chunking_benchmark': ['benchmarking/general_benchmark_data/**/*', 'benchmarking/prompts/**/*']
     },
     python_requires='>=3.6',
 )
