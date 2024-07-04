@@ -159,6 +159,8 @@ class SyntheticBenchmark(BaseBenchmark):
 
         references = []
         for reference in text_references:
+            if not isinstance(reference, str):
+                raise ValueError(f"Expected reference to be of type str, but got {type(reference).__name__}")
             target = rigorous_document_search(corpus, reference)
             if target is not None:
                 reference, start_index, end_index = target
@@ -168,13 +170,12 @@ class SyntheticBenchmark(BaseBenchmark):
         
         return question, references
 
-    def _generate_corpus_questions(self, corpus_id, approx=False):
+    def _generate_corpus_questions(self, corpus_id, approx=False, n=5):
         with open(corpus_id, 'r') as file:
             corpus = file.read()
 
-        i = -1
-        while i < 5:
-            i += 1
+        i = 0
+        while i < n:
             while True:
                 try:
                     print(f"Trying Question {i}")
@@ -201,6 +202,7 @@ class SyntheticBenchmark(BaseBenchmark):
                 except (ValueError, json.JSONDecodeError) as e:
                     print(f"Error occurred: {e}")
                     continue
+            i += 1
 
     def _get_synth_questions_df(self):
         if os.path.exists(self.questions_csv_path):
@@ -209,12 +211,14 @@ class SyntheticBenchmark(BaseBenchmark):
             synth_questions_df = pd.DataFrame(columns=['question', 'references', 'corpus_id'])
         return synth_questions_df
 
-    def generate_questions_and_highlights(self, approximate_highlights=False):
+    def generate_questions_and_highlights(self, approximate_highlights=False, num_rounds = -1, questions_per_corpus = 5):
         self.synth_questions_df = self._get_synth_questions_df()
 
-        while True:
+        rounds = 0
+        while num_rounds == -1 or rounds < num_rounds:
             for corpus_id in self.corpora_paths:
-                self._generate_corpus_questions(corpus_id, approx=approximate_highlights)
+                self._generate_corpus_questions(corpus_id, approx=approximate_highlights, n=questions_per_corpus)
+            rounds += 1
 
     def _get_sim(self, target, references):
         response = self.client.embeddings.create(
@@ -357,4 +361,3 @@ class SyntheticBenchmark(BaseBenchmark):
 
     def question_ref_filter(self):
         self.synth_questions_df = self._get_synth_questions_df()
-        pass
