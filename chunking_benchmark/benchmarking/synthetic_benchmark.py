@@ -20,7 +20,7 @@ class SyntheticBenchmark(BaseBenchmark):
 
         self.synth_questions_df = None
 
-        with resources.as_file(resources.files('chroma_research.benchmarking') / 'prompts') as prompt_path:
+        with resources.as_file(resources.files('chunking_benchmark.benchmarking') / 'prompts') as prompt_path:
             with open(os.path.join(prompt_path, 'question_maker_system.txt'), 'r') as f:
                 self.question_maker_system_prompt = f.read()
 

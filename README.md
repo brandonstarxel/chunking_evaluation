@@ -7,14 +7,14 @@ A package for text chunking and benchmarking.
 You can install the package directly from GitHub:
 
 ```bash
-pip install git+https://github.com/brandonstarxel/chroma_research.git
+pip install git+https://github.com/brandonstarxel/chunking_benchmark.git
 ```
 
 
 # Benchmarking with Your Own Custom Chunker
 This example shows how to implement your own chunking logic and benchmark its performance.
 ```python
-from chroma_research import BaseChunker, GeneralBenchmark
+from chunking_benchmark import BaseChunker, GeneralBenchmark
 from chromadb.utils import embedding_functions
 
 # Define a custom chunking class
@@ -44,8 +44,8 @@ print(results)
 # Usage and Benchmarking of ClusterSemanticChunker
 This example demonstrates how to use our ClusterSemanticChunker and how you can benchmark it yourself.
 ```python
-from chroma_research import BaseChunker, GeneralBenchmark
-from chroma_research.chunking import ClusterSemanticChunker
+from chunking_benchmark import BaseChunker, GeneralBenchmark
+from chunking_benchmark.chunking import ClusterSemanticChunker
 from chromadb.utils import embedding_functions
 
 # Instantiate benchmark
@@ -73,7 +73,7 @@ Here are the steps you can take to develop a domain specific benchmark based off
 1. **Initialize the Environment**:
 
     ```python
-    from chroma_research import SyntheticBenchmark
+    from chunking_benchmark import SyntheticBenchmark
     
     # Specify the corpora paths and output CSV file
     corpora_paths = [
@@ -107,7 +107,7 @@ Here are the steps you can take to develop a domain specific benchmark based off
 4. **Run the Benchmark**:
 
     ```python
-    from chroma_research import BaseChunker
+    from chunking_benchmark import BaseChunker
 
     # Define a custom chunking class
     class CustomChunker(BaseChunker):

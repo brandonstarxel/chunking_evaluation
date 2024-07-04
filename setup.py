@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="chroma_research",
+    name="chunking_benchmark",
     version="0.1.0",
     packages=find_packages(),
     install_requires=[
@@ -20,7 +20,7 @@ setup(
     description="A package for text chunking and benchmarking.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/chroma_research",
+    url="https://github.com/yourusername/chunking_benchmark",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -28,7 +28,7 @@ setup(
     ],
     include_package_data=True,
     package_data={
-        'chroma_research': ['benchmarking/general_benchmark_data/**/*']
+        'chunking_benchmark': ['benchmarking/general_benchmark_data/**/*']
     },
     python_requires='>=3.6',
 )

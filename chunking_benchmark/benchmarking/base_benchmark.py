@@ -350,7 +350,7 @@ class BaseBenchmark:
         question_collection = None
 
         if self.is_general:
-            with resources.as_file(resources.files('chroma_research.benchmarking') / 'general_benchmark_data') as general_benchmark_path:
+            with resources.as_file(resources.files('chunking_benchmark.benchmarking') / 'general_benchmark_data') as general_benchmark_path:
                 questions_client = chromadb.PersistentClient(path=os.path.join(general_benchmark_path, 'questions_db'))
                 if embedding_function.__class__.__name__ == "OpenAIEmbeddingFunction":
                     try:

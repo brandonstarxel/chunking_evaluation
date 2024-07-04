@@ -4,7 +4,7 @@ from pathlib import Path
 
 class GeneralBenchmark(BaseBenchmark):
     def __init__(self, chroma_db_path=None):
-        with resources.as_file(resources.files('chroma_research.benchmarking') / 'general_benchmark_data') as general_benchmark_path:
+        with resources.as_file(resources.files('chunking_benchmark.benchmarking') / 'general_benchmark_data') as general_benchmark_path:
             self.general_benchmark_path = general_benchmark_path
             questions_df_path = self.general_benchmark_path / 'questions_df.csv'
 
