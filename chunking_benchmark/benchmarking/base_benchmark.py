@@ -1,5 +1,5 @@
 from typing import Callable
-from chroma_research.utils import rigorous_document_search, get_openai_embedding_function
+from chunking_benchmark.utils import rigorous_document_search, get_openai_embedding_function
 import chromadb.utils.embedding_functions as embedding_functions
 import os
 import pandas as pd

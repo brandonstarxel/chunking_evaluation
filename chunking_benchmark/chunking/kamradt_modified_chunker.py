@@ -4,7 +4,7 @@
 from typing import Optional
 from .base_chunker import BaseChunker
 from .recursive_token_chunker import RecursiveTokenChunker
-from chroma_research.utils import openai_token_count, get_openai_embedding_function
+from chunking_benchmark.utils import openai_token_count, get_openai_embedding_function
 from chromadb.api.types import (
     Embeddable,
     EmbeddingFunction,

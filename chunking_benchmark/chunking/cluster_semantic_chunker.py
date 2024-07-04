@@ -3,9 +3,9 @@ from typing import List
 
 import numpy as np
 import tiktoken
-from chroma_research.chunking import RecursiveTokenChunker
+from chunking_benchmark.chunking import RecursiveTokenChunker
 
-from chroma_research.utils import get_openai_embedding_function, openai_token_count
+from chunking_benchmark.utils import get_openai_embedding_function, openai_token_count
 
 class ClusterSemanticChunker(BaseChunker):
     def __init__(self, embedding_function=None, max_chunk_size=400, min_chunk_size=50, length_function=openai_token_count):

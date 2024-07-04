@@ -3,7 +3,7 @@ import os
 import json
 import random
 
-from chroma_research.utils import rigorous_document_search
+from chunking_benchmark.utils import rigorous_document_search
 from .base_benchmark import BaseBenchmark
 
 import pandas as pd
