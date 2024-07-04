@@ -1,4 +1,4 @@
-# Chroma Research
+# Chunking Benchmark
 
 A package for text chunking and benchmarking.
 
