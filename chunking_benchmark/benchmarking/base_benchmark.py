@@ -93,12 +93,12 @@ class BaseBenchmark:
 
         self.questions_csv_path = questions_csv_path
 
+        self.corpus_list = []
+
         self._load_questions_df()
 
         # self.questions_df = pd.read_csv(questions_csv_path)
         # self.questions_df['references'] = self.questions_df['references'].apply(json.loads)
-        
-        self.corpus_list = self.questions_df['corpus_id'].unique().tolist()
 
         if chroma_db_path is not None:
             self.chroma_client = chromadb.PersistentClient(path=chroma_db_path)
@@ -113,6 +113,8 @@ class BaseBenchmark:
             self.questions_df['references'] = self.questions_df['references'].apply(json.loads)
         else:
             self.questions_df = pd.DataFrame(columns=['question', 'references', 'corpus_id'])
+        
+        self.corpus_list = self.questions_df['corpus_id'].unique().tolist()
 
     def _get_chunks_and_metadata(self, splitter):
         # Warning: metadata will be incorrect if a chunk is repeated since we use .find() to find the start index. This isn't pratically an issue for chunks over 1000 characters.
@@ -365,9 +367,10 @@ class BaseBenchmark:
                         question_collection = questions_client.get_collection("auto_questions_sentence_transformer", embedding_function=embedding_function)
                     except:
                         print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of SentenceTransformer's embedding function. The error: ", e)
-
+        
         if not self.is_general or question_collection is None:
-            print("FAILED TO LOAD GENERAL BENCHMARK")
+            if self.is_general:
+                print("FAILED TO LOAD GENERAL BENCHMARK")
             try:
                 self.chroma_client.delete_collection("auto_questions")
             except ValueError as e:
