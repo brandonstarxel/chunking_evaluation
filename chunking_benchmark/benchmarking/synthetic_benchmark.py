@@ -107,6 +107,9 @@ class SyntheticBenchmark(BaseBenchmark):
             if len(reference_keys) != 3:
                 raise ValueError(f"Each reference must have exactly 3 keys: 'content', 'start_chunk', and 'end_chunk'. Got keys: {reference_keys}")
 
+            if 'start_chunk' not in reference_keys or 'end_chunk' not in reference_keys:
+                raise ValueError("Each reference must contain 'start_chunk' and 'end_chunk' keys.")
+
             if 'end_chunk' not in reference_keys:
                 reference_keys.remove('content')
                 reference_keys.remove('start_chunk')
