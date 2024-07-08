@@ -212,6 +212,7 @@ class BaseBenchmark:
         iou_scores = []
         recall_scores = []
         precision_scores = []
+        f_scores = []
         for (index, row), highlighted_chunk_count, metadatas in zip(self.questions_df.iterrows(), highlighted_chunks_count, question_metadatas):
             # Unpack question and references
             # question, references = question_references
@@ -267,7 +268,13 @@ class BaseBenchmark:
             iou_score = numerator_value / iou_denominator
             iou_scores.append(iou_score)
 
-        return iou_scores, recall_scores, precision_scores
+            if numerator_value != 0:
+                f_score = (2 * precision_score * recall_score) / (precision_score + recall_score)
+            else:
+                f_score = 0
+            f_scores.append(f_score)
+
+        return iou_scores, recall_scores, precision_scores, f_scores
 
     def _chunker_to_collection(self, chunker, embedding_function, chroma_db_path:str = None, collection_name:str = None):
         collection = None
@@ -406,7 +413,7 @@ class BaseBenchmark:
         # Retrieve the documents based on sorted embeddings
         retrievals = collection.query(query_embeddings=list(sorted_embeddings), n_results=maximum_n)
 
-        iou_scores, recall_scores, precision_scores = self._scores_from_dataset_and_retrievals(retrievals['metadatas'], highlighted_chunks_count)
+        iou_scores, recall_scores, precision_scores, f_scores = self._scores_from_dataset_and_retrievals(retrievals['metadatas'], highlighted_chunks_count)
 
 
         corpora_scores = {
@@ -418,13 +425,16 @@ class BaseBenchmark:
                     "precision_omega_scores": [],
                     "iou_scores": [],
                     "recall_scores": [],
-                    "precision_scores": []
+                    "precision_scores": [],
+                    "f_scores": [],
                 }
             
             corpora_scores[row['corpus_id']]['precision_omega_scores'].append(brute_iou_scores[index])
             corpora_scores[row['corpus_id']]['iou_scores'].append(iou_scores[index])
             corpora_scores[row['corpus_id']]['recall_scores'].append(recall_scores[index])
             corpora_scores[row['corpus_id']]['precision_scores'].append(precision_scores[index])
+            corpora_scores[row['corpus_id']]['f_scores'].append(f_scores[index])
+            
 
 
         brute_iou_mean = np.mean(brute_iou_scores)
@@ -438,6 +448,9 @@ class BaseBenchmark:
 
         precision_mean = np.mean(precision_scores)
         precision_std = np.std(precision_scores)
+
+        f_scores_mean = np.mean(f_scores)
+        f_scores_std = np.std(f_scores)
 
         # print("Recall scores: ", recall_scores)
         # print("Precision scores: ", precision_scores)
@@ -453,5 +466,7 @@ class BaseBenchmark:
             "precision_omega_mean": brute_iou_mean,
             "precision_omega_std": brute_iou_std,
             "precision_mean": precision_mean,
-            "precision_std": precision_std
+            "precision_std": precision_std,
+            "f_score_mean": f_scores_mean,
+            "f_score_std": f_scores_std
         }
