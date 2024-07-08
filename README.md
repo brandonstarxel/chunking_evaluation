@@ -1,6 +1,16 @@
 # Chunking Benchmark
 
-A package for text chunking and benchmarking.
+This package, developed as part of our research detailed in the [Chroma Technical Report](https://research.trychroma.com/benchmarking-chunking), provides tools for text chunking and benchmarking. It allows users to compare different chunking methods and includes implementations of several novel chunking strategies.
+
+## Features
+
+- **Compare Chunking Methods**: Evaluate and benchmark various popular chunking strategies.
+- **Novel Chunking Methods**: Implementations of new chunking methods such as `ClusterSemanticChunker` and `LLMChunker`.
+- **Benchmarking Framework**: Tools to generate domain-specific datasets and evaluate retrieval quality in the context of AI applications.
+
+## Quick Start
+
+You can immediately test the package via [Google Colab](https://colab.research.google.com/drive/1J5ALtDf0_RrswRz2fktjFVeFxe2jbXuJ?usp=sharing).
 
 ## Installation
 
@@ -135,3 +145,16 @@ Here are the steps you can take to develop a domain specific benchmark based off
 - pandas
 - numpy
 - tiktoken
+
+## Citation
+
+If you use this package in your research, please cite our technical report:
+```
+@article{smith2024benchmarking,
+  title={Benchmarking Chunking Strategies for Retrieval},
+  author={Smith, Brandon and Troynikov, Anton},
+  journal={Chroma Technical Report},
+  year={2024},
+  url={https://research.trychroma.com/benchmarking-chunking}
+}
+```
