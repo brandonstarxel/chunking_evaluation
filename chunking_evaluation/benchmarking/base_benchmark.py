@@ -1,5 +1,5 @@
 from typing import Callable
-from chunking_benchmark.utils import rigorous_document_search, get_openai_embedding_function
+from chunking_evaluation.utils import rigorous_document_search, get_openai_embedding_function
 import chromadb.utils.embedding_functions as embedding_functions
 import os
 import pandas as pd
@@ -352,7 +352,7 @@ class BaseBenchmark:
         question_collection = None
 
         if self.is_general:
-            with resources.as_file(resources.files('chunking_benchmark.benchmarking') / 'general_benchmark_data') as general_benchmark_path:
+            with resources.as_file(resources.files('chunking_evaluation.benchmarking') / 'general_benchmark_data') as general_benchmark_path:
                 questions_client = chromadb.PersistentClient(path=os.path.join(general_benchmark_path, 'questions_db'))
                 if embedding_function.__class__.__name__ == "OpenAIEmbeddingFunction":
                     try:

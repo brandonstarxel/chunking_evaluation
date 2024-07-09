@@ -1,6 +1,6 @@
 from .base_chunker import BaseChunker
-from chunking_benchmark.utils import openai_token_count
-from chunking_benchmark.chunking import RecursiveTokenChunker
+from chunking_evaluation.utils import openai_token_count
+from chunking_evaluation.chunking import RecursiveTokenChunker
 import anthropic
 import os
 import backoff

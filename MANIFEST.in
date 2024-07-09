@@ -1,2 +1,2 @@
-recursive-include chunking_benchmark/benchmarking/general_benchmark_data *
-recursive-include chunking_benchmark/benchmarking/prompts *
+recursive-include chunking_evaluation/benchmarking/general_benchmark_data *
+recursive-include chunking_evaluation/benchmarking/prompts *

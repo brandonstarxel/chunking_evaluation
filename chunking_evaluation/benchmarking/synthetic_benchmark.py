@@ -3,7 +3,7 @@ import os
 import json
 import random
 
-from chunking_benchmark.utils import rigorous_document_search
+from chunking_evaluation.utils import rigorous_document_search
 from .base_benchmark import BaseBenchmark
 
 import pandas as pd
@@ -20,7 +20,7 @@ class SyntheticBenchmark(BaseBenchmark):
 
         self.synth_questions_df = None
 
-        with resources.as_file(resources.files('chunking_benchmark.benchmarking') / 'prompts') as prompt_path:
+        with resources.as_file(resources.files('chunking_evaluation.benchmarking') / 'prompts') as prompt_path:
             with open(os.path.join(prompt_path, 'question_maker_system.txt'), 'r') as f:
                 self.question_maker_system_prompt = f.read()
 

@@ -5,7 +5,7 @@
 
 from typing import Any, List, Optional
 from .base_chunker import BaseChunker
-from chunking_benchmark.utils import Language
+from chunking_evaluation.utils import Language
 from .fixed_token_chunker import TextSplitter
 import re
 

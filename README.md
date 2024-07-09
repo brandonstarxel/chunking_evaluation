@@ -17,14 +17,14 @@ You can immediately test the package via [Google Colab](https://colab.research.g
 You can install the package directly from GitHub:
 
 ```bash
-pip install git+https://github.com/brandonstarxel/chunking_benchmark.git
+pip install git+https://github.com/brandonstarxel/chunking_evaluation.git
 ```
 
 
 # Benchmarking with Your Own Custom Chunker
 This example shows how to implement your own chunking logic and benchmark its performance.
 ```python
-from chunking_benchmark import BaseChunker, GeneralBenchmark
+from chunking_evaluation import BaseChunker, GeneralBenchmark
 from chromadb.utils import embedding_functions
 
 # Define a custom chunking class
@@ -54,8 +54,8 @@ print(results)
 # Usage and Benchmarking of ClusterSemanticChunker
 This example demonstrates how to use our ClusterSemanticChunker and how you can benchmark it yourself.
 ```python
-from chunking_benchmark import BaseChunker, GeneralBenchmark
-from chunking_benchmark.chunking import ClusterSemanticChunker
+from chunking_evaluation import BaseChunker, GeneralBenchmark
+from chunking_evaluation.chunking import ClusterSemanticChunker
 from chromadb.utils import embedding_functions
 
 # Instantiate benchmark
@@ -83,7 +83,7 @@ Here are the steps you can take to develop a domain specific benchmark based off
 1. **Initialize the Environment**:
 
     ```python
-    from chunking_benchmark import SyntheticBenchmark
+    from chunking_evaluation import SyntheticBenchmark
     
     # Specify the corpora paths and output CSV file
     corpora_paths = [
@@ -117,7 +117,7 @@ Here are the steps you can take to develop a domain specific benchmark based off
 4. **Run the Benchmark**:
 
     ```python
-    from chunking_benchmark import BaseChunker
+    from chunking_evaluation import BaseChunker
 
     # Define a custom chunking class
     class CustomChunker(BaseChunker):
