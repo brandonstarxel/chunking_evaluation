@@ -12,10 +12,10 @@ from openai import OpenAI
 from importlib import resources
 
 class SyntheticEvaluation(BaseEvaluation):
-    def __init__(self, corpora_paths: List[str], questions_csv_path: str, chroma_db_path:str = None, openai_api_key=None):
-        super().__init__(questions_csv_path=questions_csv_path, chroma_db_path=chroma_db_path)
+    def __init__(self, corpora_paths: List[str], queries_csv_path: str, chroma_db_path:str = None, openai_api_key=None):
+        super().__init__(questions_csv_path=queries_csv_path, chroma_db_path=chroma_db_path)
         self.corpora_paths = corpora_paths
-        self.questions_csv_path = questions_csv_path
+        self.questions_csv_path = queries_csv_path
         self.client = OpenAI(api_key=openai_api_key)
 
         self.synth_questions_df = None
@@ -181,7 +181,7 @@ class SyntheticEvaluation(BaseEvaluation):
         while i < n:
             while True:
                 try:
-                    print(f"Trying Question {i}")
+                    print(f"Trying Query {i}")
                     questions_list = self.synth_questions_df[self.synth_questions_df['corpus_id'] == corpus_id]['question'].tolist()
                     if approx:
                         question, references = self._extract_question_and_approx_references(corpus, 4000, questions_list)
@@ -214,13 +214,13 @@ class SyntheticEvaluation(BaseEvaluation):
             synth_questions_df = pd.DataFrame(columns=['question', 'references', 'corpus_id'])
         return synth_questions_df
 
-    def generate_questions_and_highlights(self, approximate_highlights=False, num_rounds = -1, questions_per_corpus = 5):
+    def generate_queries_and_excerpts(self, approximate_excerpts=False, num_rounds = -1, queries_per_corpus = 5):
         self.synth_questions_df = self._get_synth_questions_df()
 
         rounds = 0
         while num_rounds == -1 or rounds < num_rounds:
             for corpus_id in self.corpora_paths:
-                self._generate_corpus_questions(corpus_id, approx=approximate_highlights, n=questions_per_corpus)
+                self._generate_corpus_questions(corpus_id, approx=approximate_excerpts, n=queries_per_corpus)
             rounds += 1
 
     def _get_sim(self, target, references):
@@ -275,7 +275,7 @@ class SyntheticEvaluation(BaseEvaluation):
         full_questions_df.to_csv(self.questions_csv_path, index=False)
 
 
-    def filter_poor_highlights(self, threshold=0.36, corpora_subset=[]):
+    def filter_poor_excerpts(self, threshold=0.36, corpora_subset=[]):
         if os.path.exists(self.questions_csv_path):
             synth_questions_df = pd.read_csv(self.questions_csv_path)
             if len(synth_questions_df) > 0:

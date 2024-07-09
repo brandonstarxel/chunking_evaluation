@@ -91,24 +91,24 @@ Here are the steps you can take to develop a sythetic dataset based off your own
         'path/to/finance.txt',
         # Add more corpora files as needed
     ]
-    questions_csv_path = 'generated_questions_highlights.csv'
+    queries_csv_path = 'generated_queries_excerpts.csv'
     
     # Initialize the evaluation
-    evaluation = SyntheticEvaluation(corpora_paths, questions_csv_path, openai_api_key="OPENAI_API_KEY")
+    evaluation = SyntheticEvaluation(corpora_paths, queries_csv_path, openai_api_key="OPENAI_API_KEY")
     ```
 
-2. **Generate Questions and Highlights**:
+2. **Generate Queries and Excerpts**:
 
     ```python
-    # Generate questions and highlights, and save to CSV
-    evaluation.generate_questions_and_highlights()
+    # Generate queries and excerpts, and save to CSV
+    evaluation.generate_queries_and_excerpts()
     ```
 
 3. **Apply Filters**:
 
     ```python
-    # Apply filter to remove questions with poor highlights
-    evaluation.filter_poor_highlights(threshold=0.36)
+    # Apply filter to remove queries with poor excerpts
+    evaluation.filter_poor_excerpts(threshold=0.36)
     
     # Apply filter to remove duplicates
     evaluation.filter_duplicates(threshold=0.6)
@@ -133,11 +133,11 @@ Here are the steps you can take to develop a sythetic dataset based off your own
     print("Evaluation Results:", results)
     ```
 
-2. **Optional: If generation is unable to generate questions try approximate highlights**
+2. **Optional: If generation is unable to generate queries try approximate excerpts**
 
     ```python
-    # Generate questions and highlights, and save to CSV
-    evaluation.generate_questions_and_highlights(approximate_highlights=True)
+    # Generate queries and excerpts, and save to CSV
+    evaluation.generate_queries_and_excerpts(approximate_excerpts=True)
     ```
 ## Package Dependancies:
 - chroma
