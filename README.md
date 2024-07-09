@@ -51,6 +51,22 @@ print(results)
 # 'recall_mean': 0.8091207841640163, 'recall_std': 0.3792297991952294}
 ```
 
+# Evaluating a Custom Embedding Function
+```python
+from chromadb import Documents, EmbeddingFunction, Embeddings
+
+class MyEmbeddingFunction(EmbeddingFunction):
+    def __call__(self, input: Documents) -> Embeddings:
+        # embed the documents somehow
+        return embeddings
+
+# Instantiate instance of ef
+default_ef = MyEmbeddingFunction()
+
+# Evaluate the embedding function with a chunker
+results = evaluation.run(chunker, default_ef)
+```
+
 # Usage and Evaluation of ClusterSemanticChunker
 This example demonstrates how to use our ClusterSemanticChunker and how you can evaluate it yourself.
 ```python
