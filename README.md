@@ -1,4 +1,4 @@
-# Chunking Benchmark
+# Chunking Evaluation
 
 This package, developed as part of our research detailed in the [Chroma Technical Report](https://research.trychroma.com/benchmarking-chunking), provides tools for text chunking and benchmarking. It allows users to compare different chunking methods and includes implementations of several novel chunking strategies.
 
