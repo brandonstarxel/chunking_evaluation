@@ -87,7 +87,7 @@ def find_target_in_document(document, target):
     end_index = start_index + len(target)
     return start_index, end_index
 
-class BaseBenchmark:
+class BaseEvaluation:
     def __init__(self, questions_csv_path: str, chroma_db_path=None, corpora_id_paths=None):
         self.corpora_id_paths = corpora_id_paths
 
@@ -320,10 +320,10 @@ class BaseBenchmark:
 
     def run(self, chunker, embedding_function=None, retrieve:int = 5, db_to_save_chunks: str = None):
         """
-        This function runs the benchmark over the provided chunker.
+        This function runs the evaluation over the provided chunker.
 
         Parameters:
-        chunker: The chunker to benchmark over.
+        chunker: The chunker to evaluate.
         embedding_function: The embedding function to use for calculating the nearest neighbours during the retrieval step. If not provided, the default OpenAI embedding function is used.
         retrieve: The number of chunks to retrieve per question. If set to -1, the function will retrieve the minimum number of chunks that contain excerpts for a given query. This is typically around 1 to 3 but can vary by question. By setting a specific value for retrieve, this number is fixed for all queries.
         """
@@ -352,7 +352,7 @@ class BaseBenchmark:
         question_collection = None
 
         if self.is_general:
-            with resources.as_file(resources.files('chunking_evaluation.benchmarking') / 'general_benchmark_data') as general_benchmark_path:
+            with resources.as_file(resources.files('chunking_evaluation.evaluation_framework') / 'general_evaluation_data') as general_benchmark_path:
                 questions_client = chromadb.PersistentClient(path=os.path.join(general_benchmark_path, 'questions_db'))
                 if embedding_function.__class__.__name__ == "OpenAIEmbeddingFunction":
                     try:
@@ -369,8 +369,8 @@ class BaseBenchmark:
                         print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of SentenceTransformer's embedding function. The error: ", e)
         
         if not self.is_general or question_collection is None:
-            if self.is_general:
-                print("FAILED TO LOAD GENERAL BENCHMARK")
+            # if self.is_general:
+            #     print("FAILED TO LOAD GENERAL EVALUATION")
             try:
                 self.chroma_client.delete_collection("auto_questions")
             except ValueError as e:

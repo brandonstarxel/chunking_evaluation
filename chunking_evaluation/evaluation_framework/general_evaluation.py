@@ -1,10 +1,10 @@
-from .base_benchmark import BaseBenchmark
+from .base_evaluation import BaseEvaluation
 from importlib import resources
 from pathlib import Path
 
-class GeneralBenchmark(BaseBenchmark):
+class GeneralEvaluation(BaseEvaluation):
     def __init__(self, chroma_db_path=None):
-        with resources.as_file(resources.files('chunking_evaluation.benchmarking') / 'general_benchmark_data') as general_benchmark_path:
+        with resources.as_file(resources.files('chunking_evaluation.evaluation_framework') / 'general_evaluation_data') as general_benchmark_path:
             self.general_benchmark_path = general_benchmark_path
             questions_df_path = self.general_benchmark_path / 'questions_df.csv'
 

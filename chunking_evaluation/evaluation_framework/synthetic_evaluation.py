@@ -4,14 +4,14 @@ import json
 import random
 
 from chunking_evaluation.utils import rigorous_document_search
-from .base_benchmark import BaseBenchmark
+from .base_evaluation import BaseEvaluation
 
 import pandas as pd
 import numpy as np
 from openai import OpenAI
 from importlib import resources
 
-class SyntheticBenchmark(BaseBenchmark):
+class SyntheticEvaluation(BaseEvaluation):
     def __init__(self, corpora_paths: List[str], questions_csv_path: str, chroma_db_path:str = None, openai_api_key=None):
         super().__init__(questions_csv_path=questions_csv_path, chroma_db_path=chroma_db_path)
         self.corpora_paths = corpora_paths
@@ -20,7 +20,7 @@ class SyntheticBenchmark(BaseBenchmark):
 
         self.synth_questions_df = None
 
-        with resources.as_file(resources.files('chunking_evaluation.benchmarking') / 'prompts') as prompt_path:
+        with resources.as_file(resources.files('chunking_evaluation.evaluation_framework') / 'prompts') as prompt_path:
             with open(os.path.join(prompt_path, 'question_maker_system.txt'), 'r') as f:
                 self.question_maker_system_prompt = f.read()
 

@@ -1,10 +1,10 @@
 from .chunking.base_chunker import BaseChunker
-from .benchmarking.general_benchmark import GeneralBenchmark
-from .benchmarking.synthetic_benchmark import SyntheticBenchmark
+from .evaluation_framework.general_evaluation import GeneralEvaluation
+from .evaluation_framework.synthetic_evaluation import SyntheticEvaluation
 from .utils import *
 
 __all__ = [
     'BaseChunker',
-    'GeneralBenchmark',
-    'SyntheticBenchmark',
+    'GeneralEvaluation',
+    'SyntheticEvaluation',
 ]

@@ -1,12 +1,12 @@
 # Chunking Evaluation
 
-This package, developed as part of our research detailed in the [Chroma Technical Report](https://research.trychroma.com/benchmarking-chunking), provides tools for text chunking and benchmarking. It allows users to compare different chunking methods and includes implementations of several novel chunking strategies.
+This package, developed as part of our research detailed in the [Chroma Technical Report](https://research.trychroma.com/benchmarking-chunking), provides tools for text chunking and evaluation. It allows users to compare different chunking methods and includes implementations of several novel chunking strategies.
 
 ## Features
 
-- **Compare Chunking Methods**: Evaluate and benchmark various popular chunking strategies.
+- **Compare Chunking Methods**: Evaluate and compare various popular chunking strategies.
 - **Novel Chunking Methods**: Implementations of new chunking methods such as `ClusterSemanticChunker` and `LLMChunker`.
-- **Benchmarking Framework**: Tools to generate domain-specific datasets and evaluate retrieval quality in the context of AI applications.
+- **Evaluation Framework**: Tools to generate domain-specific datasets and evaluate retrieval quality in the context of AI applications.
 
 ## Quick Start
 
@@ -21,10 +21,10 @@ pip install git+https://github.com/brandonstarxel/chunking_evaluation.git
 ```
 
 
-# Benchmarking with Your Own Custom Chunker
-This example shows how to implement your own chunking logic and benchmark its performance.
+# Evaluating Your Own Custom Chunker
+This example shows how to implement your own chunking logic and evaluate its performance.
 ```python
-from chunking_evaluation import BaseChunker, GeneralBenchmark
+from chunking_evaluation import BaseChunker, GeneralEvaluation
 from chromadb.utils import embedding_functions
 
 # Define a custom chunking class
@@ -33,9 +33,9 @@ class CustomChunker(BaseChunker):
         # Custom chunking logic
         return [text[i:i+1200] for i in range(0, len(text), 1200)]
 
-# Instantiate the custom chunker and benchmark
+# Instantiate the custom chunker and evaluation
 chunker = CustomChunker()
-benchmark = GeneralBenchmark()
+evaluation = GeneralEvaluation()
 
 # Choose embedding function
 default_ef = embedding_functions.OpenAIEmbeddingFunction(
@@ -43,23 +43,23 @@ default_ef = embedding_functions.OpenAIEmbeddingFunction(
     model_name="text-embedding-3-large"
 )
 
-# Run the benchmark
-results = benchmark.run(chunker, default_ef)
+# Evaluate the chunker
+results = evaluation.run(chunker, default_ef)
 
 print(results)
 # {'iou_mean': 0.17715979570301696, 'iou_std': 0.10619791407460026, 
 # 'recall_mean': 0.8091207841640163, 'recall_std': 0.3792297991952294}
 ```
 
-# Usage and Benchmarking of ClusterSemanticChunker
-This example demonstrates how to use our ClusterSemanticChunker and how you can benchmark it yourself.
+# Usage and Evaluation of ClusterSemanticChunker
+This example demonstrates how to use our ClusterSemanticChunker and how you can evaluate it yourself.
 ```python
-from chunking_evaluation import BaseChunker, GeneralBenchmark
+from chunking_evaluation import BaseChunker, GeneralEvaluation
 from chunking_evaluation.chunking import ClusterSemanticChunker
 from chromadb.utils import embedding_functions
 
-# Instantiate benchmark
-benchmark = GeneralBenchmark()
+# Instantiate evaluation
+evaluation = GeneralEvaluation()
 
 # Choose embedding function
 default_ef = embedding_functions.OpenAIEmbeddingFunction(
@@ -67,23 +67,23 @@ default_ef = embedding_functions.OpenAIEmbeddingFunction(
     model_name="text-embedding-3-large"
 )
 
-# Instantiate chunker and run the benchmark
+# Instantiate chunker and run the evaluation
 chunker = ClusterSemanticChunker(default_ef, max_chunk_size=400)
-results = benchmark.run(chunker, default_ef)
+results = evaluation.run(chunker, default_ef)
 
 print(results)
 # {'iou_mean': 0.18255175232840098, 'iou_std': 0.12773219595465307, 
 # 'recall_mean': 0.8973469551927365, 'recall_std': 0.29042203879923994}
 ```
 
-## Synthetic Benchmark Pipeline
+## Synthetic Dataset Pipeline for Domain Specific Evaluation
 
-Here are the steps you can take to develop a domain specific benchmark based off your own corpora.
+Here are the steps you can take to develop a sythetic dataset based off your own corpora for domain specific evaluation.
 
 1. **Initialize the Environment**:
 
     ```python
-    from chunking_evaluation import SyntheticBenchmark
+    from chunking_evaluation import SyntheticEvaluation
     
     # Specify the corpora paths and output CSV file
     corpora_paths = [
@@ -93,28 +93,28 @@ Here are the steps you can take to develop a domain specific benchmark based off
     ]
     questions_csv_path = 'generated_questions_highlights.csv'
     
-    # Initialize the benchmark
-    benchmark = SyntheticBenchmark(corpora_paths, questions_csv_path, openai_api_key="OPENAI_API_KEY")
+    # Initialize the evaluation
+    evaluation = SyntheticEvaluation(corpora_paths, questions_csv_path, openai_api_key="OPENAI_API_KEY")
     ```
 
 2. **Generate Questions and Highlights**:
 
     ```python
     # Generate questions and highlights, and save to CSV
-    benchmark.generate_questions_and_highlights()
+    evaluation.generate_questions_and_highlights()
     ```
 
 3. **Apply Filters**:
 
     ```python
     # Apply filter to remove questions with poor highlights
-    benchmark.filter_poor_highlights(threshold=0.36)
+    evaluation.filter_poor_highlights(threshold=0.36)
     
     # Apply filter to remove duplicates
-    benchmark.filter_duplicates(threshold=0.6)
+    evaluation.filter_duplicates(threshold=0.6)
     ```
 
-4. **Run the Benchmark**:
+4. **Run the Evaluation**:
 
     ```python
     from chunking_evaluation import BaseChunker
@@ -128,16 +128,16 @@ Here are the steps you can take to develop a domain specific benchmark based off
     # Instantiate the custom chunker
     chunker = CustomChunker()
 
-    # Run the benchmark on the filtered data
-    results = benchmark.run(chunker)
-    print("Benchmark Results:", results)
+    # Run the evaluation on the filtered data
+    results = evaluation.run(chunker)
+    print("Evaluation Results:", results)
     ```
 
 2. **Optional: If generation is unable to generate questions try approximate highlights**
 
     ```python
     # Generate questions and highlights, and save to CSV
-    benchmark.generate_questions_and_highlights(approximate_highlights=True)
+    evaluation.generate_questions_and_highlights(approximate_highlights=True)
     ```
 ## Package Dependancies:
 - chroma

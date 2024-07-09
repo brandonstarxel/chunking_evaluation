@@ -17,7 +17,7 @@ setup(
     ],
     author="Brandon A. Smith",
     author_email="brandonsmithpmpuk@gmail.com",
-    description="A package for text chunking and benchmarking.",
+    description="A package to evaluate multiple chunking methods. It also provides two new chunking methods.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/yourusername/chunking_evaluation",
@@ -28,7 +28,7 @@ setup(
     ],
     include_package_data=True,
     package_data={
-        'chunking_evaluation': ['benchmarking/general_benchmark_data/**/*', 'benchmarking/prompts/**/*']
+        'chunking_evaluation': ['evaluation_framework/general_evaluation_data/**/*', 'evaluation_framework/prompts/**/*']
     },
     python_requires='>=3.6',
 )
