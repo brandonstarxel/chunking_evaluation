@@ -150,11 +150,12 @@ Here are the steps you can take to develop a domain specific benchmark based off
 
 If you use this package in your research, please cite our technical report:
 ```
-@article{smith2024benchmarking,
-  title={Benchmarking Chunking Strategies for Retrieval},
-  author={Smith, Brandon and Troynikov, Anton},
-  journal={Chroma Technical Report},
-  year={2024},
-  url={https://research.trychroma.com/benchmarking-chunking}
+@techreport{smith2024benchmarking,
+  title = {Evaluating Chunking Strategies for Retrieval},
+  author = {Smith, Brandon and Troynikov, Anton},
+  year = {2024},
+  month = {July},
+  institution = {Chroma},
+  url = {https://research.trychroma.com/benchmarking-chunking},
 }
 ```
