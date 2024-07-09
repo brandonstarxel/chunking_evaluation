@@ -150,12 +150,12 @@ Here are the steps you can take to develop a sythetic dataset based off your own
 
 If you use this package in your research, please cite our technical report:
 ```
-@techreport{smith2024benchmarking,
+@techreport{smith2024evaluating,
   title = {Evaluating Chunking Strategies for Retrieval},
   author = {Smith, Brandon and Troynikov, Anton},
   year = {2024},
   month = {July},
   institution = {Chroma},
-  url = {https://research.trychroma.com/benchmarking-chunking},
+  url = {https://research.trychroma.com/evaluating-chunking},
 }
 ```
