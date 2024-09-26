@@ -10,7 +10,11 @@ This package, developed as part of our research detailed in the [Chroma Technica
 
 ## Quick Start
 
-You can immediately test the package via [Google Colab](https://colab.research.google.com/drive/1J5ALtDf0_RrswRz2fktjFVeFxe2jbXuJ?usp=sharing).
+You can immediately test the package via [![GoogleColab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jcourson8/chunking_evaluation/blob/dev/james/notebook/Chroma_Research.ipynb)
+
+## Open in Google Colab
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jcourson8/chunking_evaluation/blob/dev/james/notebook/Chroma_Research.ipynb)
 
 ## Installation
 
