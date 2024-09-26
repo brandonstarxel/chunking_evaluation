@@ -1,12 +1,9 @@
-from typing import Callable
 from chunking_evaluation.utils import rigorous_document_search, get_openai_embedding_function
-import chromadb.utils.embedding_functions as embedding_functions
 import os
 import pandas as pd
 import json
 import chromadb
 import numpy as np
-from typing import List
 from importlib import resources
 
 def sum_of_ranges(ranges):
@@ -365,7 +362,7 @@ class BaseEvaluation:
                 elif embedding_function.__class__.__name__ == "SentenceTransformerEmbeddingFunction":
                     try:
                         question_collection = questions_client.get_collection("auto_questions_sentence_transformer", embedding_function=embedding_function)
-                    except:
+                    except Exception as e:
                         print("Warning: Failed to use the frozen embeddings originally used in the paper. As a result, this package will now generate a new set of embeddings. The change should be minimal and only come from the noise floor of SentenceTransformer's embedding function. The error: ", e)
         
         if not self.is_general or question_collection is None:
