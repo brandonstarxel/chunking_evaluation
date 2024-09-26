@@ -156,11 +156,17 @@ Here are the steps you can take to develop a sythetic dataset based off your own
     evaluation.generate_queries_and_excerpts(approximate_excerpts=True)
     ```
 ## Package Dependancies:
-- chroma
+The following will be installed along with the package:
+- tiktoken
 - fuzzywuzzy
 - pandas
 - numpy
-- tiktoken
+- tqdm
+- chromadb
+- python-Levenshtein
+- openai
+- anthropic
+- attrs
 
 ## Citation
 
