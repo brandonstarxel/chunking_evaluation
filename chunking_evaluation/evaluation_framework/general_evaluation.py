@@ -1,6 +1,5 @@
 from .base_evaluation import BaseEvaluation
 from importlib import resources
-from pathlib import Path
 
 class GeneralEvaluation(BaseEvaluation):
     def __init__(self, chroma_db_path=None):
