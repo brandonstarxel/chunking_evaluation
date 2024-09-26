@@ -8,10 +8,6 @@ This package, developed as part of our research detailed in the [Chroma Technica
 - **Novel Chunking Methods**: Implementations of new chunking methods such as `ClusterSemanticChunker` and `LLMChunker`.
 - **Evaluation Framework**: Tools to generate domain-specific datasets and evaluate retrieval quality in the context of AI applications.
 
-## Quick Start
-
-You can immediately test the package via [![GoogleColab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jcourson8/chunking_evaluation/blob/dev/james/notebook/Chroma_Research.ipynb)
-
 ## Open in Google Colab
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jcourson8/chunking_evaluation/blob/dev/james/notebook/Chroma_Research.ipynb)
