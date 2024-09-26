@@ -46,7 +46,7 @@ default_ef = embedding_functions.OpenAIEmbeddingFunction(
 # Evaluate the chunker
 results = evaluation.run(chunker, default_ef)
 
-print(results)
+print(results.get('stats'))
 # {'iou_mean': 0.17715979570301696, 'iou_std': 0.10619791407460026, 
 # 'recall_mean': 0.8091207841640163, 'recall_std': 0.3792297991952294}
 ```
@@ -87,7 +87,7 @@ default_ef = embedding_functions.OpenAIEmbeddingFunction(
 chunker = ClusterSemanticChunker(default_ef, max_chunk_size=400)
 results = evaluation.run(chunker, default_ef)
 
-print(results)
+print(results.get('stats'))
 # {'iou_mean': 0.18255175232840098, 'iou_std': 0.12773219595465307, 
 # 'recall_mean': 0.8973469551927365, 'recall_std': 0.29042203879923994}
 ```
@@ -146,7 +146,7 @@ Here are the steps you can take to develop a sythetic dataset based off your own
 
     # Run the evaluation on the filtered data
     results = evaluation.run(chunker)
-    print("Evaluation Results:", results)
+    print("Evaluation Results:", results.get('stats'))
     ```
 
 2. **Optional: If generation is unable to generate queries try approximate excerpts**
