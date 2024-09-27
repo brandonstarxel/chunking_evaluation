@@ -119,7 +119,7 @@ class RateLimiter:
         self,
         max_tokens_per_minute: Optional[int] = None,
         max_requests_per_minute: Optional[int] = None,
-        model_name: str = 'cl100k_base'
+        model_name: str = 'cl100k_base' # OpenAI Tokenizer
     ):
         """
         Initialize the rate limiter.

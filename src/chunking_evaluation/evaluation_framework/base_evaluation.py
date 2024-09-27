@@ -18,7 +18,6 @@ from .evaluation_utils import (
 )
 from tqdm.auto import tqdm
 
-
 class BaseEvaluation:
     """
     Base class for evaluation of chunkers with respect to retrieval tasks.
