@@ -1,0 +1,45 @@
+[project]
+name = "chunking_evaluation"
+version = "0.1.0"
+description = "A package to evaluate multiple chunking methods. It also provides two new chunking methods."
+authors = [
+    {name = "Brandon A. Smith", email = "brandonsmithpmpuk@gmail.com"},
+]
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "tiktoken",
+    "fuzzywuzzy",
+    "pandas",
+    "numpy",
+    "tqdm",
+    "chromadb",
+    "python-Levenshtein",
+    "openai",
+    "anthropic",
+    "attrs",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/chunking_evaluation"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chunking_evaluation"]
+
+[tool.hatch.build]
+include = [
+    "src/chunking_evaluation/**/*.py",
+    "src/chunking_evaluation/evaluation_framework/general_evaluation_data/**/*",
+    "src/chunking_evaluation/evaluation_framework/prompts/**/*",
+]
