@@ -43,8 +43,15 @@ default_ef = embedding_functions.OpenAIEmbeddingFunction(
     model_name="text-embedding-3-large"
 )
 
+# Create a RateLimiter instance
+rate_limiter = RateLimiter(
+    # Set your rate limits as needed (this is OpenAI's tier 1 rate limit)
+    max_tokens_per_minute=1_000_000, 
+    max_requests_per_minute=3_000,
+)
+
 # Evaluate the chunker
-results = evaluation.run(chunker, default_ef)
+results = evaluation.run(chunker, default_ef, rate_limiter) # set use_tqdm=True to see progress bar
 
 print(results.get('stats'))
 # {'iou_mean': 0.17715979570301696, 'iou_std': 0.10619791407460026, 
@@ -66,6 +73,7 @@ default_ef = MyEmbeddingFunction()
 # Evaluate the embedding function with a chunker
 results = evaluation.run(chunker, default_ef)
 ```
+
 
 # Usage and Evaluation of ClusterSemanticChunker
 This example demonstrates how to use our ClusterSemanticChunker and how you can evaluate it yourself.
