@@ -51,7 +51,7 @@ rate_limiter = RateLimiter(
 )
 
 # Evaluate the chunker
-results = evaluation.run(chunker, default_ef, rate_limiter) # set use_tqdm=True to see progress bar
+results = evaluation.run(chunker, default_ef, rate_limiter) # set show_progress=True to see progress bar
 
 print(results.get('stats'))
 # {'iou_mean': 0.17715979570301696, 'iou_std': 0.10619791407460026, 

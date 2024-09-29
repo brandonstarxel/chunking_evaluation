@@ -627,9 +627,9 @@ class BaseEvaluation:
         self,
         chunker,
         embedding_function=None,
-        retrieve: int = 5,
-        db_to_save_chunks: Optional[str] = None,
-        use_tqdm: bool = False,
+        num_chunks_to_retrieve: int = 5,
+        chunk_db_path: Optional[str] = None,
+        show_progress: bool = False,
         rate_limiter: Optional[RateLimiter] = None,
     ) -> Dict[str, Dict]:
         """
@@ -638,9 +638,9 @@ class BaseEvaluation:
         Args:
             chunker: The chunker to evaluate.
             embedding_function: The embedding function for nearest neighbour retrieval. Defaults to OpenAI's embedding function.
-            retrieve: The number of chunks to retrieve per question. If set to -1, retrieves the minimum number of chunks containing excerpts.
-            db_to_save_chunks: Optional path to save the chunked documents in ChromaDB.
-            use_tqdm: Whether to use tqdm progress bar (default: False).
+            num_chunks_to_retrieve: The number of chunks to retrieve per question. If set to -1, retrieves the minimum number of chunks containing excerpts.
+            chunk_db_path: Optional path to save the chunked documents in ChromaDB.
+            show_progress: Whether to show a progress bar (default: False).
             rate_limiter: An instance of RateLimiter to manage rate limits (optional).
 
         Returns:
@@ -651,52 +651,50 @@ class BaseEvaluation:
             embedding_function = get_openai_embedding_function()
 
         # Get or create chunk collection
-        collection = self._get_chunk_collection(
+        chunk_collection = self._get_chunk_collection(
             chunker,
             embedding_function,
-            db_to_save_chunks,
-            use_tqdm,
+            chunk_db_path,
+            show_progress,
             rate_limiter=rate_limiter,
         )
 
         # Get or create question collection
         question_collection = self._get_question_collection(
             embedding_function, 
-            use_tqdm=use_tqdm, 
+            show_progress=show_progress, 
             rate_limiter=rate_limiter
         )
 
         # Retrieve question embeddings
-        question_db = question_collection.get(include=["embeddings"])
-        question_db["ids"] = [int(id) for id in question_db["ids"]]
-        _, sorted_embeddings = zip(
-            *sorted(zip(question_db["ids"], question_db["embeddings"]))
+        question_data = question_collection.get(include=["embeddings"])
+        question_data["ids"] = [int(id) for id in question_data["ids"]]
+        _, sorted_question_embeddings = zip(
+            *sorted(zip(question_data["ids"], question_data["embeddings"]))
         )
 
         self.questions_df = self.questions_df.sort_index()
 
         # Compute omega scores
-        omega_scores, highlighted_chunks_counts = self._full_precision_score(
-            collection.get()["metadatas"]
+        omega_scores, highlighted_chunk_counts = self._full_precision_score(
+            chunk_collection.get()["metadatas"]
         )
 
-        # Determine maximum_n
-        if retrieve == -1:
-            maximum_n = min(20, max(highlighted_chunks_counts))
+        # Determine max_chunks_to_retrieve
+        if num_chunks_to_retrieve == -1:
+            max_chunks_to_retrieve = min(20, max(highlighted_chunk_counts))
         else:
-            highlighted_chunks_counts = [retrieve] * len(highlighted_chunks_counts)
-            maximum_n = retrieve
+            highlighted_chunk_counts = [num_chunks_to_retrieve] * len(highlighted_chunk_counts)
+            max_chunks_to_retrieve = num_chunks_to_retrieve
 
         # Query the collection
-        retrievals = collection.query(
-            query_embeddings=list(sorted_embeddings), n_results=maximum_n
+        retrieval_results = chunk_collection.query(
+            query_embeddings=list(sorted_question_embeddings), n_results=max_chunks_to_retrieve
         )
 
         # Compute scores
-        iou_scores, recall_scores, precision_scores = (
-            self._scores_from_dataset_and_retrievals(
-                retrievals["metadatas"], highlighted_chunks_counts
-            )
+        iou_scores, recall_scores, precision_scores = self._scores_from_dataset_and_retrievals(
+            retrieval_results["metadatas"], highlighted_chunk_counts
         )
 
         # Build corpora scores
@@ -722,7 +720,7 @@ class BaseEvaluation:
             "recall_scores": recall_scores,
             "precision_scores": precision_scores,
             "omega_scores": omega_scores,
-            "highlighted_chunks_counts": highlighted_chunks_counts,
+            "highlighted_chunk_counts": highlighted_chunk_counts,
         }
 
         return {"scores": scores, "stats": stats}
