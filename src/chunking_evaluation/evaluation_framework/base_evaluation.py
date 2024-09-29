@@ -102,7 +102,7 @@ class BaseEvaluation:
 
         return documents, metadatas
 
-    def _full_precision_score(
+    def _compute_omega_scores(
         self, chunk_metadatas: List[Dict]
     ) -> Tuple[List[float], List[int]]:
         """
@@ -260,7 +260,7 @@ class BaseEvaluation:
         documents: List[str],
         metadatas: List[Dict],
         ids: List[str],
-        use_tqdm: bool = False,
+        show_progress: bool = False,
         rate_limiter: Optional[RateLimiter] = None,
     ):
         """
@@ -271,14 +271,14 @@ class BaseEvaluation:
             documents: List of documents to add.
             metadatas: List of metadata dictionaries corresponding to the documents.
             ids: List of IDs corresponding to the documents.
-            use_tqdm: Whether to use tqdm progress bar (default: False).
+            show_progress: Whether to use tqdm progress bar (default: False).
             rate_limiter: An instance of RateLimiter to manage rate limits (optional).
             max_docs_per_batch: Maximum number of documents to include in a single batch.
         """
         total_documents = len(documents)
         index = 0
 
-        if use_tqdm:
+        if show_progress:
             pbar = tqdm(total=total_documents, desc="Adding documents")
 
         while index < total_documents:
@@ -361,7 +361,7 @@ class BaseEvaluation:
                     # Update rate limiter usage
                     rate_limiter.update_usage(num_tokens=batch_tokens, num_requests=batch_requests)
 
-                    if use_tqdm:
+                    if show_progress:
                         pbar.update(1)
                 continue
 
@@ -378,10 +378,10 @@ class BaseEvaluation:
             if rate_limiter:
                 rate_limiter.update_usage(num_tokens=batch_tokens, num_requests=batch_requests)
 
-            if use_tqdm:
+            if show_progress:
                 pbar.update(len(batch_docs))
 
-        if use_tqdm:
+        if show_progress:
             pbar.close()
 
     def _chunker_to_collection(
@@ -390,7 +390,7 @@ class BaseEvaluation:
         embedding_function,
         chroma_db_path: Optional[str] = None,
         collection_name: Optional[str] = None,
-        use_tqdm: bool = False,
+        show_progress: bool = False,
         rate_limiter: Optional[RateLimiter] = None,
     ):
         """
@@ -401,7 +401,7 @@ class BaseEvaluation:
             embedding_function: The embedding function to use.
             chroma_db_path: Optional path to save the ChromaDB.
             collection_name: Optional name for the collection.
-            use_tqdm: Whether to use tqdm progress bar (default: False).
+            show_progress: Whether to use tqdm progress bar (default: False).
             rate_limiter: An instance of RateLimiter to manage rate limits (optional).
 
         Returns:
@@ -442,7 +442,7 @@ class BaseEvaluation:
             documents,
             metadatas,
             ids,
-            use_tqdm=use_tqdm,
+            show_progress=show_progress,
             rate_limiter=rate_limiter,
         )
 
@@ -453,7 +453,7 @@ class BaseEvaluation:
         chunker, 
         embedding_function, 
         db_to_save_chunks, 
-        use_tqdm: bool, 
+        show_progress: bool, 
         rate_limiter: Optional[RateLimiter]
     ):
         """
@@ -475,14 +475,14 @@ class BaseEvaluation:
                     embedding_function,
                     chroma_db_path=db_to_save_chunks,
                     collection_name=collection_name,
-                    use_tqdm=use_tqdm,
+                    show_progress=show_progress,
                     rate_limiter=rate_limiter,
                 )
         else:
             collection = self._chunker_to_collection(
                 chunker, 
                 embedding_function, 
-                use_tqdm=use_tqdm,
+                show_progress=show_progress,
                 rate_limiter=rate_limiter
             )
 
@@ -500,7 +500,7 @@ class BaseEvaluation:
         collection_name = f"{embedding_function_name}_{chunker.__class__.__name__}_{int(chunk_size)}_{int(chunk_overlap)}"
         return collection_name
 
-    def _get_question_collection(self, embedding_function, use_tqdm: bool, rate_limiter: Optional[RateLimiter]):
+    def _get_question_collection(self, embedding_function, show_progress: bool, rate_limiter: Optional[RateLimiter]):
         """
         Get or create the question collection.
         """
@@ -512,7 +512,7 @@ class BaseEvaluation:
             )
 
         if not self.is_general or question_collection is None:
-            question_collection = self._create_question_collection(embedding_function, use_tqdm=use_tqdm, rate_limiter=rate_limiter)
+            question_collection = self._create_question_collection(embedding_function, show_progress=show_progress, rate_limiter=rate_limiter)
 
         return question_collection
 
@@ -557,7 +557,7 @@ class BaseEvaluation:
     def _create_question_collection(
         self,
         embedding_function,
-        use_tqdm=False,
+        show_progress=False,
         rate_limiter: Optional[RateLimiter] = None,
     ):
         """
@@ -565,7 +565,7 @@ class BaseEvaluation:
 
         Args:
             embedding_function: The embedding function to use.
-            use_tqdm: Whether to use tqdm progress bar (default: False).
+            show_progress: Whether to use tqdm progress bar (default: False).
             rate_limiter: An instance of RateLimiter to manage rate limits (optional).
 
         Returns:
@@ -591,7 +591,7 @@ class BaseEvaluation:
             documents,
             metadatas,
             ids,
-            use_tqdm=use_tqdm,
+            show_progress=show_progress,
             rate_limiter=rate_limiter,
         )
 
@@ -676,7 +676,7 @@ class BaseEvaluation:
         self.questions_df = self.questions_df.sort_index()
 
         # Compute omega scores
-        omega_scores, highlighted_chunk_counts = self._full_precision_score(
+        omega_scores, highlighted_chunk_counts = self._compute_omega_scores(
             chunk_collection.get()["metadatas"]
         )
 
