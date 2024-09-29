@@ -255,16 +255,16 @@ class BaseEvaluation:
         return iou_scores, recall_scores, precision_scores
 
     def _add_documents_to_collection(
-    self,
-    collection,
-    documents: List[str],
-    metadatas: List[Dict],
-    ids: List[str],
-    use_tqdm: bool = False,
-    rate_limiter: Optional[RateLimiter] = None,
-):
+        self,
+        collection,
+        documents: List[str],
+        metadatas: List[Dict],
+        ids: List[str],
+        use_tqdm: bool = False,
+        rate_limiter: Optional[RateLimiter] = None,
+    ):
         """
-        Add documents to the collection, handling rate limiting if necessary.
+        Add documents to the collection, handling rate limiting and batching.
 
         Args:
             collection: The ChromaDB collection to add documents to.
@@ -273,6 +273,7 @@ class BaseEvaluation:
             ids: List of IDs corresponding to the documents.
             use_tqdm: Whether to use tqdm progress bar (default: False).
             rate_limiter: An instance of RateLimiter to manage rate limits (optional).
+            max_docs_per_batch: Maximum number of documents to include in a single batch.
         """
         total_documents = len(documents)
         index = 0
@@ -281,14 +282,14 @@ class BaseEvaluation:
             pbar = tqdm(total=total_documents, desc="Adding documents")
 
         while index < total_documents:
-            # Determine the maximum number of documents we can process in this batch
-            if rate_limiter:
-                batch_tokens = 0
-                batch_docs = []
-                batch_metas = []
-                batch_ids = []
-                batch_requests = 1  # Assuming one request per batch
+            batch_tokens = 0
+            batch_docs = []
+            batch_metas = []
+            batch_ids = []
+            batch_requests = 1  # Assuming one request per batch
 
+            if rate_limiter:
+                # Update tokens_remaining and requests_remaining
                 tokens_remaining = (
                     rate_limiter.max_tokens_per_minute - rate_limiter.tokens_used
                     if rate_limiter.max_tokens_per_minute
@@ -300,53 +301,82 @@ class BaseEvaluation:
                     else float("inf")
                 )
 
-                # Check if there are enough requests remaining for the current batch
+                # Wait if not enough requests are remaining
                 if requests_remaining < batch_requests:
                     rate_limiter.wait_for_available_quota(num_requests=batch_requests)
                     continue
 
-                # Build a batch while respecting the token limit
-                while index < total_documents:
-                    doc_tokens = rate_limiter.count_tokens([documents[index]])
-                    potential_batch_tokens = batch_tokens + doc_tokens
+            else:
+                tokens_remaining = float("inf")
 
-                    # If adding the document stays within token limits, add it to the batch
-                    if potential_batch_tokens <= tokens_remaining:
-                        batch_tokens = potential_batch_tokens
-                        batch_docs.append(documents[index])
-                        batch_metas.append(metadatas[index])
-                        batch_ids.append(ids[index])
-                        index += 1
-                    else:
-                        # Reached token limit for this batch
-                        break
+            # Build a batch while respecting the token and document limits
+            while (
+                index < total_documents
+                and len(batch_docs) < rate_limiter.max_docs_per_batch
+                and batch_tokens + (rate_limiter.count_tokens([documents[index]]) if rate_limiter else 0) <= tokens_remaining
+            ):
+                doc_tokens = rate_limiter.count_tokens([documents[index]]) if rate_limiter else 0
+                batch_tokens += doc_tokens
+                batch_docs.append(documents[index])
+                batch_metas.append(metadatas[index])
+                batch_ids.append(ids[index])
+                index += 1
 
-                # If we couldn't add any documents to the batch due to token limit
-                if not batch_docs:
-                    # Handle a single document that might exceed token limits
-                    single_doc_tokens = rate_limiter.count_tokens([documents[index]])
-                    if single_doc_tokens > rate_limiter.max_tokens_per_minute:
-                        print(f"Document at index {index} exceeds the token limit.")
-                        index += 1  # Skip this document or handle differently
-                    else:
-                        # Wait for quota if the document itself doesn't exceed limit
-                        rate_limiter.wait_for_available_quota(
-                            num_tokens=single_doc_tokens, num_requests=batch_requests
-                        )
-                    continue
+            if not batch_docs:
+                # Handle a single document that might exceed tokens_remaining
+                doc_tokens = rate_limiter.count_tokens([documents[index]]) if rate_limiter else 0
 
-                # Wait for available quota before processing the batch
+                # Check if the document exceeds the maximum tokens per minute
+                max_tokens_per_minute = rate_limiter.max_tokens_per_minute if rate_limiter else float('inf')
+                if doc_tokens > max_tokens_per_minute:
+                    # Document cannot be processed even after waiting
+                    print(f"Document at index {index} exceeds the maximum token limit per minute and cannot be processed.")
+                    index += 1  # Skip this document
+                else:
+                    # Wait for quota to become available
+                    rate_limiter.wait_for_available_quota(
+                        num_tokens=doc_tokens, num_requests=batch_requests
+                    )
+
+                    # Update tokens_remaining after waiting
+                    tokens_remaining = (
+                        rate_limiter.max_tokens_per_minute - rate_limiter.tokens_used
+                    )
+
+                    # Now, process the document
+                    batch_tokens = doc_tokens
+                    batch_docs = [documents[index]]
+                    batch_metas = [metadatas[index]]
+                    batch_ids = [ids[index]]
+                    index += 1
+
+                    # Wait for available quota before processing the batch
+                    rate_limiter.wait_for_available_quota(
+                        num_tokens=batch_tokens, num_requests=batch_requests
+                    )
+
+                    # Add the batch to the collection
+                    collection.add(documents=batch_docs, metadatas=batch_metas, ids=batch_ids)
+
+                    # Update rate limiter usage
+                    rate_limiter.update_usage(num_tokens=batch_tokens, num_requests=batch_requests)
+
+                    if use_tqdm:
+                        pbar.update(1)
+                continue
+
+            # Wait for available quota before processing the batch
+            if rate_limiter:
                 rate_limiter.wait_for_available_quota(
                     num_tokens=batch_tokens, num_requests=batch_requests
                 )
-            else:
-                # No rate limiting; process all remaining documents
-                batch_docs = documents[index:]
-                batch_metas = metadatas[index:]
-                batch_ids = ids[index:]
-                index = total_documents
 
+            # Add the batch to the collection
             collection.add(documents=batch_docs, metadatas=batch_metas, ids=batch_ids)
+
+            # Update rate limiter usage
+            if rate_limiter:
+                rate_limiter.update_usage(num_tokens=batch_tokens, num_requests=batch_requests)
 
             if use_tqdm:
                 pbar.update(len(batch_docs))

@@ -1,5 +1,6 @@
 from enum import Enum
 import re
+from threading import Lock
 from typing import List, Optional
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
@@ -119,7 +120,8 @@ class RateLimiter:
         self,
         max_tokens_per_minute: Optional[int] = None,
         max_requests_per_minute: Optional[int] = None,
-        model_name: str = 'cl100k_base' # OpenAI Tokenizer
+        model_name: str = 'cl100k_base',  # OpenAI Tokenizer
+        max_docs_per_batch: int = 500,  # Maximum documents per batch
     ):
         """
         Initialize the rate limiter.
@@ -129,16 +131,20 @@ class RateLimiter:
             max_requests_per_minute: Maximum requests allowed per minute (optional).
             model_name: The name of the model used for token estimation.
         """
-        self.max_tokens_per_minute = max_tokens_per_minute * .8 # Temporary fix for rate limiting issue here: https://community.openai.com/t/discrepancy-between-tiktoken-token-count-and-openai-embeddings-api-token-count-exceeding-tpm-limit-in-tier-2-account/959298
+        self.max_tokens_per_minute = max_tokens_per_minute
         self.max_requests_per_minute = max_requests_per_minute
         self.tokenizer = tiktoken.get_encoding(model_name)
-        self._reset_counters()
+        self.max_docs_per_batch = max_docs_per_batch
+        self.tokens_used = 0
+        self.requests_made = 0
+        self.reset_time = time.time() + 60  # Reset counters every minute
+        self.lock = Lock()  # For thread safety
 
     def _reset_counters(self):
         """Reset the rate limiter counters and timing."""
         self.tokens_used = 0
         self.requests_made = 0
-        self.window_start = time.time()
+        self.reset_time = time.time() + 60  # Next reset in 60 seconds
 
     def wait_for_available_quota(self, num_tokens: int = 0, num_requests: int = 0):
         """
@@ -148,25 +154,37 @@ class RateLimiter:
             num_tokens: Number of tokens required.
             num_requests: Number of requests required.
         """
-        while True:
-            elapsed = time.time() - self.window_start
-            if elapsed >= 60:
-                self._reset_counters()
-                break
+        with self.lock:
+            while True:
+                current_time = time.time()
+                if current_time >= self.reset_time:
+                    self._reset_counters()
 
-            tokens_remaining = (self.max_tokens_per_minute - self.tokens_used) if self.max_tokens_per_minute else float('inf')
-            requests_remaining = (self.max_requests_per_minute - self.requests_made) if self.max_requests_per_minute else float('inf')
+                tokens_remaining = (self.max_tokens_per_minute - self.tokens_used) if self.max_tokens_per_minute else float('inf')
+                requests_remaining = (self.max_requests_per_minute - self.requests_made) if self.max_requests_per_minute else float('inf')
 
-            if tokens_remaining >= num_tokens and requests_remaining >= num_requests:
-                break  # Enough quota is available
-            else:
-                sleep_time = 60 - elapsed
-                print(f"Rate limit reached. Sleeping for {sleep_time:.2f} seconds. Tokens used: {self.tokens_used}, Tokens remaining: {tokens_remaining}, Requests made: {self.requests_made}, Requests remaining: {requests_remaining}")
-                time.sleep(sleep_time)
-                self._reset_counters()
+                if tokens_remaining >= num_tokens and requests_remaining >= num_requests:
+                    break  # Enough quota is available
 
-        self.tokens_used += num_tokens
-        self.requests_made += num_requests
+                sleep_time = self.reset_time - current_time
+                print(
+                    f"Rate limit reached. Sleeping for {sleep_time:.2f} seconds. "
+                    f"Tokens used: {self.tokens_used}, Tokens remaining: {tokens_remaining}, "
+                    f"Requests made: {self.requests_made}, Requests remaining: {requests_remaining}"
+                )
+                time.sleep(max(sleep_time, 0.01))  # Avoid sleeping negative or zero time
+
+    def update_usage(self, num_tokens: int = 0, num_requests: int = 0):
+        """
+        Update the usage counters after processing.
+
+        Args:
+            num_tokens: Number of tokens used.
+            num_requests: Number of requests made.
+        """
+        with self.lock:
+            self.tokens_used += num_tokens
+            self.requests_made += num_requests
 
     def count_tokens(self, texts: List[str]) -> int:
         """Estimate the total number of tokens in the list of texts."""
