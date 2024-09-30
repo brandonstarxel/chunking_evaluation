@@ -4,7 +4,6 @@
 # License: MIT License
 
 from abc import ABC, abstractmethod
-from enum import Enum
 import logging
 from typing import (
     AbstractSet,
@@ -15,7 +14,6 @@ from typing import (
     List,
     Literal,
     Optional,
-    Sequence,
     Type,
     TypeVar,
     Union,

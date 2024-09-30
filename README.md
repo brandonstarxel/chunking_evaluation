@@ -10,7 +10,7 @@ This package, developed as part of our research detailed in the [Chroma Technica
 
 ## Quick Start
 
-You can immediately test the package via [Google Colab](https://colab.research.google.com/drive/1J5ALtDf0_RrswRz2fktjFVeFxe2jbXuJ?usp=sharing).
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jcourson8/chunking_evaluation/blob/dev/james/notebook/Chroma_Research.ipynb)
 
 ## Installation
 
@@ -43,10 +43,17 @@ default_ef = embedding_functions.OpenAIEmbeddingFunction(
     model_name="text-embedding-3-large"
 )
 
-# Evaluate the chunker
-results = evaluation.run(chunker, default_ef)
+# Create a RateLimiter instance
+rate_limiter = RateLimiter(
+    # Set your rate limits as needed (this is OpenAI's tier 1 rate limit)
+    max_tokens_per_minute=1_000_000, 
+    max_requests_per_minute=3_000,
+)
 
-print(results)
+# Evaluate the chunker
+results = evaluation.run(chunker, default_ef, rate_limiter) # set show_progress=True to see progress bar
+
+print(results.get('stats'))
 # {'iou_mean': 0.17715979570301696, 'iou_std': 0.10619791407460026, 
 # 'recall_mean': 0.8091207841640163, 'recall_std': 0.3792297991952294}
 ```
@@ -66,6 +73,7 @@ default_ef = MyEmbeddingFunction()
 # Evaluate the embedding function with a chunker
 results = evaluation.run(chunker, default_ef)
 ```
+
 
 # Usage and Evaluation of ClusterSemanticChunker
 This example demonstrates how to use our ClusterSemanticChunker and how you can evaluate it yourself.
@@ -87,7 +95,7 @@ default_ef = embedding_functions.OpenAIEmbeddingFunction(
 chunker = ClusterSemanticChunker(default_ef, max_chunk_size=400)
 results = evaluation.run(chunker, default_ef)
 
-print(results)
+print(results.get('stats'))
 # {'iou_mean': 0.18255175232840098, 'iou_std': 0.12773219595465307, 
 # 'recall_mean': 0.8973469551927365, 'recall_std': 0.29042203879923994}
 ```
@@ -146,7 +154,7 @@ Here are the steps you can take to develop a sythetic dataset based off your own
 
     # Run the evaluation on the filtered data
     results = evaluation.run(chunker)
-    print("Evaluation Results:", results)
+    print("Evaluation Results:", results.get('stats'))
     ```
 
 2. **Optional: If generation is unable to generate queries try approximate excerpts**
@@ -181,3 +189,7 @@ If you use this package in your research, please cite our technical report:
   url = {https://research.trychroma.com/evaluating-chunking},
 }
 ```
+
+## Contributions
+We welcome contributions and are excited you'd like to get involved! 
+Make sure your pull request goes to the dev branch. We will test it and then later merge it to main.

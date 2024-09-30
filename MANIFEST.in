@@ -1,2 +1,0 @@
-recursive-include chunking_evaluation/evaluation_framework/general_evaluation_data *
-recursive-include chunking_evaluation/evaluation_framework/prompts *
