@@ -14,7 +14,8 @@ setup(
         "python-Levenshtein",
         "openai",
         "anthropic",
-        "attrs"
+        "attrs",
+        "pytest"
     ],
     author="Brandon A. Smith",
     author_email="brandonsmithpmpuk@gmail.com",
