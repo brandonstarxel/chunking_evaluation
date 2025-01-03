@@ -25,7 +25,7 @@ class DatasetEvaluation(GeneralEvaluation):
         super().__init__(chroma_db_path=chroma_db_path)
 
     def _load_questions_df(self):
-        """Filters corpus and questions to consist of only provided datatasets values"""
+        """Filters the `corpus_list` and `questions_df` to include only the provided dataset values."""
         super()._load_questions_df()
 
         # filter questions
