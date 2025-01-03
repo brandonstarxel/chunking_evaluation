@@ -24,7 +24,6 @@ class DatasetEvaluation(GeneralEvaluation):
 
         super().__init__(chroma_db_path=chroma_db_path)
 
-    @override
     def _load_questions_df(self):
         """Filters corpus and questions to consist of only provided datatasets values"""
         super()._load_questions_df()
