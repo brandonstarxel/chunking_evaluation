@@ -6,6 +6,11 @@ from chunking_evaluation.evaluation_framework.dataset_evaluation import DatasetE
 QUESTIONS_DF_PATH = './chunking_evaluation/evaluation_framework/general_evaluation_data/questions_df.csv'
 
 
+def test_does_not_accept_empty_list():
+    with pytest.raises(ValueError, match='The `datasets` list argument is empty'):
+        DatasetEvaluation(datasets=[])
+
+
 def test_accepts_only_dataset_enum_values():
     with pytest.raises(TypeError, match='The `datasets` parameter must be a list of Dataset enum instance'):
         DatasetEvaluation(

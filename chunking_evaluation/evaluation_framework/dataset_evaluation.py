@@ -15,6 +15,10 @@ class Dataset(Enum):
 class DatasetEvaluation(GeneralEvaluation):
 
     def __init__(self, datasets: list[Dataset], chroma_db_path=None):
+        # edge cases handling
+        if len(datasets) == 0:
+            raise ValueError('The `datasets` list argument is empty')
+
         for dataset in datasets:
             if not isinstance(dataset, Dataset):
                 raise TypeError('The `datasets` parameter must be a list of Dataset enum instance')
