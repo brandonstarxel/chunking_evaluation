@@ -143,7 +143,7 @@ class BaseEvaluation:
         return documents, metadatas
 
     def _full_precision_score(self, chunk_metadatas):
-        ioc_scores = []
+        ioc_scores = dict()
         recall_scores = []
 
         highlighted_chunks_count = []
@@ -200,8 +200,8 @@ class BaseEvaluation:
             # Calculate ioc_score if there are numerator sets
             if numerator_sets:
                 ioc_score = sum_of_ranges(numerator_sets) / sum_of_ranges(denominator_sets)
-            
-            ioc_scores.append(ioc_score)
+
+            ioc_scores[index] = ioc_score
 
             recall_score = 1 - (sum_of_ranges(unused_highlights) / sum_of_ranges([(x['start_index'], x['end_index']) for x in references]))
             recall_scores.append(recall_score)
@@ -209,9 +209,9 @@ class BaseEvaluation:
         return ioc_scores, highlighted_chunks_count
 
     def _scores_from_dataset_and_retrievals(self, question_metadatas, highlighted_chunks_count):
-        iou_scores = []
-        recall_scores = []
-        precision_scores = []
+        iou_scores = dict()
+        recall_scores = dict()
+        precision_scores = dict()
         for (index, row), highlighted_chunk_count, metadatas in zip(self.questions_df.iterrows(), highlighted_chunks_count, question_metadatas):
             # Unpack question and references
             # question, references = question_references
@@ -259,13 +259,13 @@ class BaseEvaluation:
             iou_denominator = precision_denominator + sum_of_ranges(unused_highlights)
 
             recall_score = numerator_value / recall_denominator
-            recall_scores.append(recall_score)
+            recall_scores[index] = recall_score
 
             precision_score = numerator_value / precision_denominator
-            precision_scores.append(precision_score)
+            precision_scores[index] = precision_score
 
             iou_score = numerator_value / iou_denominator
-            iou_scores.append(iou_score)
+            iou_scores[index] = iou_score
 
         return iou_scores, recall_scores, precision_scores
 
@@ -426,18 +426,21 @@ class BaseEvaluation:
             corpora_scores[row['corpus_id']]['recall_scores'].append(recall_scores[index])
             corpora_scores[row['corpus_id']]['precision_scores'].append(precision_scores[index])
 
+        brute_iou_scores_vals = list(brute_iou_scores.values())
+        brute_iou_mean = np.mean(brute_iou_scores_vals)
+        brute_iou_std = np.std(brute_iou_scores_vals)
 
-        brute_iou_mean = np.mean(brute_iou_scores)
-        brute_iou_std = np.std(brute_iou_scores)
+        recall_scores_vals = list(recall_scores.values())
+        recall_mean = np.mean(recall_scores_vals)
+        recall_std = np.std(recall_scores_vals)
 
-        recall_mean = np.mean(recall_scores)
-        recall_std = np.std(recall_scores)
+        iou_scores_vals = list(iou_scores.values())
+        iou_mean = np.mean(iou_scores_vals)
+        iou_std = np.std(iou_scores_vals)
 
-        iou_mean = np.mean(iou_scores)
-        iou_std = np.std(iou_scores)
-
-        precision_mean = np.mean(precision_scores)
-        precision_std = np.std(precision_scores)
+        precision_scores_vals = list(precision_scores.values())
+        precision_mean = np.mean(precision_scores_vals)
+        precision_std = np.std(precision_scores_vals)
 
         # print("Recall scores: ", recall_scores)
         # print("Precision scores: ", precision_scores)
