@@ -117,17 +117,26 @@ class BaseEvaluation:
         self.corpus_list = self.questions_df['corpus_id'].unique().tolist()
 
     def _get_chunks_and_metadata(self, splitter):
-        # Warning: metadata will be incorrect if a chunk is repeated since we use .find() to find the start index. This isn't pratically an issue for chunks over 1000 characters.
+        # Warning: metadata will be incorrect if a chunk is repeated since we use .find() to find the start index. 
+        # This isn't pratically an issue for chunks over 1000 characters.
         documents = []
         metadatas = []
         for corpus_id in self.corpus_list:
             corpus_path = corpus_id
             if self.corpora_id_paths is not None:
                 corpus_path = self.corpora_id_paths[corpus_id]
-
-            with open(corpus_path, 'r') as file:
-                corpus = file.read()
-
+    
+            # Check the operating system and use UTF-8 encoding on Windows
+            # This prevents UnicodeDecodeError when reading files with non-ASCII characters
+            import platform
+            if platform.system() == 'Windows':
+                with open(corpus_path, 'r', encoding='utf-8') as file:
+                    corpus = file.read()
+            else:
+                # Use default encoding on other systems
+                with open(corpus_path, 'r') as file:
+                    corpus = file.read()
+    
             current_documents = splitter.split_text(corpus)
             current_metadatas = []
             for document in current_documents:
@@ -136,7 +145,6 @@ class BaseEvaluation:
                 except:
                     print(f"Error in finding {document} in {corpus_id}")
                     raise Exception(f"Error in finding {document} in {corpus_id}")
-                # start_index, end_index = find_target_in_document(corpus, document)
                 current_metadatas.append({"start_index": start_index, "end_index": end_index, "corpus_id": corpus_id})
             documents.extend(current_documents)
             metadatas.extend(current_metadatas)
